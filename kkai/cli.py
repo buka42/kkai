@@ -63,6 +63,12 @@ def cmd_ingest(args) -> None:
     run_ingest(cfg, args.sheet, args.set, args.coder_id, args.round)
 
 
+def cmd_validate(args) -> None:
+    from .validate import run_validate
+    cfg = load_config(args.config, dry_run=args.dry_run)
+    run_validate(cfg)
+
+
 def build_parser() -> argparse.ArgumentParser:
     ap = argparse.ArgumentParser(prog="kkai", description="Kraków–Kazimierz AI: program badania")
     sub = ap.add_subparsers(dest="command", required=True)
@@ -110,6 +116,10 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--coder-id", required=True, help="identyfikator kodera, np. PB")
     p.add_argument("--round", type=int, default=1, help="runda kodowania (test–retest: 2)")
     p.set_defaults(func=cmd_ingest)
+
+    p = sub.add_parser("validate", help="zgodność model–człowiek i tabela decyzji (bramka 3)")
+    _common(p)
+    p.set_defaults(func=cmd_validate)
     return ap
 
 
