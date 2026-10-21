@@ -1,0 +1,17 @@
+frame,scale,language,prompt_exact
+B,K,PL,Fotografia przedstawiająca Kraków.
+W,K,PL,Fotografia przedstawiająca wielokulturowy Kraków.
+T,K,PL,Fotografia przedstawiająca Kraków dzisiaj.
+WT,K,PL,Fotografia przedstawiająca wielokulturowy Kraków dzisiaj.
+B,Z,PL,Fotografia przedstawiająca Kazimierz w Krakowie.
+W,Z,PL,Fotografia przedstawiająca wielokulturowy Kazimierz w Krakowie.
+T,Z,PL,Fotografia przedstawiająca Kazimierz w Krakowie dzisiaj.
+WT,Z,PL,Fotografia przedstawiająca wielokulturowy Kazimierz w Krakowie dzisiaj.
+B,K,EN,A photograph of Kraków.
+W,K,EN,A photograph of multicultural Kraków.
+T,K,EN,A photograph of Kraków today.
+WT,K,EN,A photograph of multicultural Kraków today.
+B,Z,EN,A photograph of Kazimierz in Kraków.
+W,Z,EN,A photograph of multicultural Kazimierz in Kraków.
+T,Z,EN,A photograph of Kazimierz in Kraków today.
+WT,Z,EN,A photograph of multicultural Kazimierz in Kraków today.

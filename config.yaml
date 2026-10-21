@@ -1,0 +1,46 @@
+# kkai settings. API keys are NOT here: they come from .env (OPENAI_API_KEY, GEMINI_API_KEY).
+study_id: kkai_2026
+shuffle_seed: 20261029
+data_dir: data                 # --dry-run always writes to data_dryrun/ instead
+prompts: materials/prompts.csv
+
+generators:
+  # Every key except provider, model, cost_per_image_usd and min_interval_seconds
+  # is sent to the API unchanged.
+  OA:
+    provider: openai
+    model: gpt-image-2.5-flare-2026-09-08
+    size: 1024x1024
+    quality: medium
+    moderation: auto
+    n: 1
+    cost_per_image_usd: null     # fill in from the pricing page on test day
+    min_interval_seconds: 3.5    # Build tier: 20 images/min
+  GG:
+    provider: gemini
+    model: gemini-nano-banana-2.1
+    image_size: 1K
+    aspect_ratio: "1:1"
+    response_modalities: [TEXT, IMAGE]
+    cost_per_image_usd: null
+    min_interval_seconds: 1.0
+
+reps: {test: 1, pilot: 2, main: 20}
+pilot_languages: [EN]
+# 4 prompts x 2 generators = 8 images (protocol section 4). Format: FRAME-SCALE-LANGUAGE.
+test_conditions: [B-K-EN, W-K-EN, T-Z-EN, WT-Z-EN]
+
+coder:
+  model: gpt-6.1-sol
+  mode: batch                  # batch (50% cheaper, up to 24 h) or sync (one call per image, for the API test)
+  reasoning_effort: medium
+  instruction: materials/coder_instruction_v0.9.txt   # switch to v1.0 after the freeze on 29.10
+  schema: materials/coder_schema_v0.9.json
+  user_message: Code this image according to the instruction.
+  max_batch_mb: 180            # Batch API limit is 200 MB per input file
+  cost_per_image_usd: null     # fill in after the API test (tokens x price)
+  poll_seconds: 60
+validation: {per_condition: 5, retest_n: 50, second_coder_n: 50}
+retries: {technical: 3, corrupt_file: 1, backoff_seconds: [5, 20, 60]}
+timeout_seconds: 180
+max_cost_usd: 30

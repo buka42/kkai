@@ -1,0 +1,506 @@
+{
+  "name": "krakow_image_coding_v0_9",
+  "strict": true,
+  "schema": {
+    "type": "object",
+    "properties": {
+      "observations": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "text": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "text"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "medium": {
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "string",
+            "enum": [
+              "photo_colour",
+              "photo_aged",
+              "illustration",
+              "indeterminate"
+            ]
+          },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Observation ids (o1, o2, ...) this value rests on"
+          }
+        },
+        "required": [
+          "value",
+          "evidence"
+        ],
+        "additionalProperties": false
+      },
+      "temporal_frame": {
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "string",
+            "enum": [
+              "contemporary",
+              "historical",
+              "staged_historical",
+              "indeterminate"
+            ]
+          },
+          "contemporary_cue_types": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "mobile_device",
+                "modern_motor_vehicle",
+                "modern_tram",
+                "micromobility",
+                "modern_clothing",
+                "screen_or_led",
+                "modern_signage_or_branding",
+                "other_contemporary_object"
+              ]
+            }
+          },
+          "historical_cue_types": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "period_clothing_all_figures",
+                "period_motor_vehicle",
+                "aged_photographic_look",
+                "other_period_object"
+              ]
+            }
+          },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Observation ids (o1, o2, ...) this value rests on"
+          }
+        },
+        "required": [
+          "value",
+          "contemporary_cue_types",
+          "historical_cue_types",
+          "evidence"
+        ],
+        "additionalProperties": false
+      },
+      "mode_of_culture": {
+        "type": "object",
+        "properties": {
+          "dominant": {
+            "type": "string",
+            "enum": [
+              "everyday",
+              "heritage",
+              "spectacle",
+              "consumption",
+              "indeterminate"
+            ]
+          },
+          "secondary": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "everyday",
+                "heritage",
+                "spectacle",
+                "consumption"
+              ]
+            }
+          },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Observation ids (o1, o2, ...) this value rests on"
+          }
+        },
+        "required": [
+          "dominant",
+          "secondary",
+          "evidence"
+        ],
+        "additionalProperties": false
+      },
+      "people": {
+        "type": "object",
+        "properties": {
+          "count_band": {
+            "type": "string",
+            "enum": [
+              "none",
+              "1_5",
+              "6_20",
+              "crowd"
+            ]
+          },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Observation ids (o1, o2, ...) this value rests on"
+          }
+        },
+        "required": [
+          "count_band",
+          "evidence"
+        ],
+        "additionalProperties": false
+      },
+      "figure_roles": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "role": {
+              "type": "string",
+              "enum": [
+                "everyday_activity",
+                "sightseeing",
+                "performer_or_costumed",
+                "religious_practice",
+                "indeterminate"
+              ]
+            },
+            "evidence": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Observation ids (o1, o2, ...) this value rests on"
+            }
+          },
+          "required": [
+            "role",
+            "evidence"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "religion": {
+        "type": "object",
+        "properties": {
+          "form": {
+            "type": "string",
+            "enum": [
+              "none",
+              "building",
+              "symbol_or_object",
+              "practice"
+            ]
+          },
+          "traditions_by_object": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "jewish",
+                "christian",
+                "christian_orthodox",
+                "muslim",
+                "other",
+                "indeterminate"
+              ]
+            }
+          },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Observation ids (o1, o2, ...) this value rests on"
+          }
+        },
+        "required": [
+          "form",
+          "traditions_by_object",
+          "evidence"
+        ],
+        "additionalProperties": false
+      },
+      "script_markers": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": [
+                "latin",
+                "hebrew",
+                "hebrew_like",
+                "cyrillic",
+                "other"
+              ]
+            },
+            "legible": {
+              "type": "boolean"
+            },
+            "evidence": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Observation ids (o1, o2, ...) this value rests on"
+            }
+          },
+          "required": [
+            "type",
+            "legible",
+            "evidence"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "text_in_image": {
+        "type": "object",
+        "properties": {
+          "present": {
+            "type": "boolean"
+          },
+          "legible_strings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "garbled": {
+            "type": "boolean"
+          },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Observation ids (o1, o2, ...) this value rests on"
+          }
+        },
+        "required": [
+          "present",
+          "legible_strings",
+          "garbled",
+          "evidence"
+        ],
+        "additionalProperties": false
+      },
+      "place": {
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "string",
+            "enum": [
+              "landmark",
+              "generic_historic_townscape",
+              "generic_modern_townscape",
+              "inconsistent_with_krakow",
+              "indeterminate"
+            ]
+          },
+          "landmarks": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "wawel",
+                "cloth_hall",
+                "st_marys",
+                "town_hall_tower",
+                "barbican_florian_gate",
+                "sts_peter_paul",
+                "old_synagogue",
+                "remuh",
+                "tempel",
+                "plac_nowy",
+                "szeroka_street",
+                "corpus_christi",
+                "skalka",
+                "bernatek_footbridge",
+                "other_krakow_landmark"
+              ]
+            }
+          },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Observation ids (o1, o2, ...) this value rests on"
+          }
+        },
+        "required": [
+          "value",
+          "landmarks",
+          "evidence"
+        ],
+        "additionalProperties": false
+      },
+      "dress_items": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "item": {
+              "type": "string",
+              "enum": [
+                "long_dark_coat",
+                "dark_brimmed_hat",
+                "fur_hat",
+                "kippah",
+                "prayer_shawl",
+                "headscarf",
+                "folk_costume",
+                "period_costume",
+                "religious_habit",
+                "other"
+              ]
+            },
+            "evidence": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Observation ids (o1, o2, ...) this value rests on"
+            }
+          },
+          "required": [
+            "item",
+            "evidence"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "tourism_consumption": {
+        "type": "object",
+        "properties": {
+          "present": {
+            "type": "boolean"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "restaurant_garden",
+                "souvenir_stall",
+                "shop_sign",
+                "golf_cart_tour",
+                "horse_carriage",
+                "tourist_signage",
+                "other"
+              ]
+            }
+          },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Observation ids (o1, o2, ...) this value rests on"
+          }
+        },
+        "required": [
+          "present",
+          "items",
+          "evidence"
+        ],
+        "additionalProperties": false
+      },
+      "memory_markers": {
+        "type": "object",
+        "properties": {
+          "present": {
+            "type": "boolean"
+          },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Observation ids (o1, o2, ...) this value rests on"
+          }
+        },
+        "required": [
+          "present",
+          "evidence"
+        ],
+        "additionalProperties": false
+      },
+      "review_reasons": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "enum": [
+            "religion_present",
+            "script_marker",
+            "staged_time",
+            "time_cues_conflict",
+            "performer_or_religious_role",
+            "dress_item_flag",
+            "landmark_uncertain",
+            "place_not_consistent",
+            "low_confidence_primary"
+          ]
+        }
+      },
+      "needs_human_review": {
+        "type": "boolean"
+      },
+      "ambiguity_note": {
+        "type": "string",
+        "description": "Short note on unclear fields; empty string if none"
+      },
+      "self_reported_confidence": {
+        "type": "string",
+        "enum": [
+          "low",
+          "medium",
+          "high"
+        ]
+      }
+    },
+    "required": [
+      "observations",
+      "medium",
+      "temporal_frame",
+      "mode_of_culture",
+      "people",
+      "figure_roles",
+      "religion",
+      "script_markers",
+      "text_in_image",
+      "place",
+      "dress_items",
+      "tourism_consumption",
+      "memory_markers",
+      "review_reasons",
+      "needs_human_review",
+      "ambiguity_note",
+      "self_reported_confidence"
+    ],
+    "additionalProperties": false
+  }
+}

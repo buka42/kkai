@@ -1,0 +1,16 @@
+.env
+__pycache__/
+*.pyc
+.venv/
+venv/
+.pytest_cache/
+# Study data: raw images and the condition key never go to git before publication
+data/raw/
+data/key/
+data/blinded/
+data/ai/
+data/human/
+data/logs/
+export/
+*.egg-info/
+data_dryrun/
