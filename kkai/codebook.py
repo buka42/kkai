@@ -18,6 +18,8 @@ import jsonschema
 # column -> (path in the schema to the enum, multi-select?)
 SHEET_COLUMNS = {
     "medium": (("medium", "value"), False),
+    # Control column (kodeks 0.9.1): no agreement reported; with 'none' the roles must be empty.
+    "people_count": (("people", "count_band"), False),
     "temporal_frame": (("temporal_frame", "value"), False),
     "contemporary_cue_types": (("temporal_frame", "contemporary_cue_types", "[]"), True),
     "historical_cue_types": (("temporal_frame", "historical_cue_types", "[]"), True),
@@ -166,7 +168,6 @@ def flatten(out: dict) -> dict:
         vals = _get(out, path)
         row[col] = ";".join(sorted(dict.fromkeys(vals))) if multi else vals[0]
     row.update({
-        "people_count_band": out["people"]["count_band"],
         "dress_items": ";".join(sorted({d["item"] for d in out["dress_items"]})),
         "text_present": out["text_in_image"]["present"],
         "text_garbled": out["text_in_image"]["garbled"],
@@ -211,6 +212,8 @@ def random_output(schema_doc: dict, rng: random.Random) -> dict:
         raise ValueError(f"unsupported schema node {node}")
 
     out = gen(schema_doc["schema"])
+    if out["people"]["count_band"] == "none":
+        out["figure_roles"] = []
     # Make the flags consistent, as a well-behaved model would.
     out["review_reasons"] = sorted(expected_review_reasons(out))
     out["needs_human_review"] = bool(out["review_reasons"])

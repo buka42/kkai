@@ -186,7 +186,8 @@ def test_sheet_and_ingest(cfg):
     col = {h: i + 1 for i, h in enumerate(header)}
     for r in range(2, ws.max_row + 1):
         for name, val in [("medium", "photo_colour"), ("temporal_frame", "contemporary"), ("mode_dominant", "heritage"),
-                          ("religion_form", "none"), ("place", "landmark"), ("roles", "sightseeing; everyday_activity")]:
+                          ("religion_form", "none"), ("place", "landmark"), ("roles", "sightseeing; everyday_activity"),
+                          ("people_count", "1_5")]:
             ws.cell(r, col[name], val)
     ws.cell(2, col["landmarks"], "wawel;atlantis")
     filled = xlsx.with_name("pilot_filled.xlsx")
@@ -194,6 +195,11 @@ def test_sheet_and_ingest(cfg):
     with pytest.raises(KkaiError):
         run_ingest(cfg, filled, "pilot", "PB")
     ws.cell(2, col["landmarks"], "wawel")
+    ws.cell(3, col["people_count"], "none")
+    wb.save(filled)
+    with pytest.raises(KkaiError):
+        run_ingest(cfg, filled, "pilot", "PB")  # roles present although people_count = none
+    ws.cell(3, col["people_count"], "1_5")
     wb.save(filled)
     assert run_ingest(cfg, filled, "pilot", "PB") == len(key)
     rows = read_csv(cfg.data_dir / "human" / "human_codes.csv")

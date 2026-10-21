@@ -59,6 +59,8 @@ def check_sheet(cfg: Config, sheet: Path, set_name: str) -> tuple[list[dict], li
                     errors.append(f"wiersz {rnum} ({iid}): {col}: brak wartości")
                 elif val not in allowed[col]:
                     errors.append(f"wiersz {rnum} ({iid}): {col}: niedozwolone {val!r}")
+        if rec.get("people_count") == "none" and rec.get("roles"):
+            errors.append(f"wiersz {rnum} ({iid}): people_count = none, a roles nie jest puste")
         rows.append(rec)
     for iid in sorted(expected_ids - seen):
         errors.append(f"brak wiersza dla {iid}")
