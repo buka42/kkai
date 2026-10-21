@@ -14,3 +14,4 @@ data/logs/
 export/
 *.egg-info/
 data_dryrun/
+export_dryrun/

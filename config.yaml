@@ -40,7 +40,7 @@ coder:
   max_batch_mb: 180            # Batch API limit is 200 MB per input file
   cost_per_image_usd: null     # fill in after the API test (tokens x price)
   poll_seconds: 60
-validation: {per_condition: 5, retest_n: 50, second_coder_n: 50}
+validation: {per_condition: 5, retest_n: 50, second_coder_n: 50, coder_id: PB, bootstrap: 1000}
 retries: {technical: 3, corrupt_file: 1, backoff_seconds: [5, 20, 60]}
 timeout_seconds: 180
 max_cost_usd: 30

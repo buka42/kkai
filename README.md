@@ -37,19 +37,40 @@ cp .env.example .env             # then put your API keys in .env
 | `kkai sheet --set pilot\|validation\|retest\|second` | Coding sheet (XLSX with drop-down lists) and an HTML page with the images, showing only `image_id` |
 | `kkai ingest --sheet FILE --set … --coder-id PB [--round 2]` | Checks a filled sheet and appends it to `data/human/human_codes.csv` |
 | `kkai code --set test\|pilot\|main\|validation-repeat` | Codes blinded images with the AI model (Batch API or one call per image); run it again to collect batch results |
+| `kkai validate` | Model–human alpha per variable (bootstrap CI), model stability, confusion matrices, differential error (W/WT vs B/T, OA vs GG), test–retest, second coder; proposed gate-3 decisions |
+| `kkai review` | After gate 3 (`data/human/decisions.csv`): review sheet for the remaining images, model codes in separate columns |
+| `kkai review --ingest FILE` | Reads the filled review sheet; writes `review_corrections.csv` and `final_codes.csv` (code and source per variable) |
+| `kkai analyze` | Proportions with Wilson CIs in 32 conditions, H1–H4 (one-sided Fisher, Holm over 8 tests), sensitivity without `indeterminate`, robustness by language and scale, refusal rates, religion and scripts |
+| `kkai walls` | Image walls: 8 conditions × 2 generators, first 8 images by random id |
+| `kkai figure` | Share of historical or staged frame in 8 conditions with CIs (PNG, SVG; readable in black and white) |
+| `kkai export [--with-images]` | Replication package with materials, plans, logs, codes, reports and a SHA-256 manifest |
 
 Useful options: `--dry-run`, `--yes`, `--limit N` (e.g. 10 images as a first test), `--retry-errors`, `--new-run`.
 
-Still to be written: `validate`, `review`, `analyze`, `walls`, `figure`, `export`.
 
 ## Full dry run
 
+`kkai simulate-human` fills a sheet with plausible codes so that the steps after human coding can be tested. It works only on `data_dryrun/`.
+
 ```bash
-kkai plan --stage pilot --dry-run
-kkai generate --stage pilot --dry-run
-kkai prepare --stage pilot --dry-run
-kkai code --set pilot --dry-run
-kkai sheet --set pilot --dry-run
+kkai plan --stage main --dry-run
+kkai generate --stage main --dry-run
+kkai prepare --stage main --dry-run
+kkai sample --dry-run
+kkai code --set main --dry-run
+kkai code --set validation-repeat --dry-run
+kkai sheet --set validation --dry-run
+kkai simulate-human --sheet validation_sheet.xlsx
+kkai ingest --dry-run --sheet data_dryrun/human/validation_sheet_filled.xlsx --set validation --coder-id PB
+kkai validate --dry-run
+kkai simulate-human --sheet decisions
+kkai review --dry-run
+kkai simulate-human --sheet review_sheet.xlsx
+kkai review --dry-run --ingest data_dryrun/human/review_sheet_filled.xlsx
+kkai analyze --dry-run
+kkai walls --dry-run
+kkai figure --dry-run
+kkai export --dry-run
 ```
 
 ## Data layout

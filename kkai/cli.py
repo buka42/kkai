@@ -69,6 +69,41 @@ def cmd_validate(args) -> None:
     run_validate(cfg)
 
 
+def cmd_review(args) -> None:
+    from .review import run_ingest_review, run_review
+    cfg = load_config(args.config, dry_run=args.dry_run)
+    if args.ingest:
+        run_ingest_review(cfg, args.ingest)
+    else:
+        run_review(cfg)
+
+
+def cmd_analyze(args) -> None:
+    from .analyze import run_analyze
+    run_analyze(load_config(args.config, dry_run=args.dry_run))
+
+
+def cmd_walls(args) -> None:
+    from .walls import run_walls
+    run_walls(load_config(args.config, dry_run=args.dry_run))
+
+
+def cmd_figure(args) -> None:
+    from .figure import run_figure
+    run_figure(load_config(args.config, dry_run=args.dry_run))
+
+
+def cmd_export(args) -> None:
+    from .export import run_export
+    run_export(load_config(args.config, dry_run=args.dry_run), with_images=args.with_images)
+
+
+def cmd_simulate_human(args) -> None:
+    from .simulate import simulate_sheet
+    cfg = load_config(args.config, dry_run=True)
+    simulate_sheet(cfg, args.sheet)
+
+
 def build_parser() -> argparse.ArgumentParser:
     ap = argparse.ArgumentParser(prog="kkai", description="Kraków–Kazimierz AI: program badania")
     sub = ap.add_subparsers(dest="command", required=True)
@@ -120,6 +155,28 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("validate", help="zgodność model–człowiek i tabela decyzji (bramka 3)")
     _common(p)
     p.set_defaults(func=cmd_validate)
+
+    p = sub.add_parser("review", help="arkusz przeglądu po bramce 3; z --ingest wczytuje poprawki i tworzy kody końcowe")
+    _common(p)
+    p.add_argument("--ingest", default=None, help="ścieżka do wypełnionego review_sheet.xlsx")
+    p.set_defaults(func=cmd_review)
+
+    for name, func, text in [("analyze", cmd_analyze, "testy H1–H4, odsetki z przedziałami, odporność"),
+                             ("walls", cmd_walls, "ściany obrazów według reguły doboru"),
+                             ("figure", cmd_figure, "wykres ramy czasowej w 8 warunkach")]:
+        p = sub.add_parser(name, help=text)
+        _common(p)
+        p.set_defaults(func=func)
+
+    p = sub.add_parser("export", help="pakiet replikacyjny bez kluczy")
+    _common(p)
+    p.add_argument("--with-images", action="store_true", help="dołącz obrazy z blinded/")
+    p.set_defaults(func=cmd_export)
+
+    p = sub.add_parser("simulate-human", help="tylko --dry-run: wypełnia arkusz losowo, by przetestować dalsze kroki")
+    p.add_argument("--config", default="config.yaml")
+    p.add_argument("--sheet", required=True, help="arkusz do wypełnienia (validation_sheet.xlsx, review_sheet.xlsx …)")
+    p.set_defaults(func=cmd_simulate_human)
     return ap
 
 

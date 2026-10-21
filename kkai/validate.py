@@ -198,8 +198,18 @@ def run_validate(cfg: Config) -> Path:
             w.writerow(["human \\ model", *cats])
             for hc in cats:
                 w.writerow([hc, *[cm.get((hc, mc), 0) for mc in cats]])
+    proposal = [{"variable": r["variable"], "decision": r["decision"]} for r in rows
+                if r["decision"] and ":" not in r["variable"]]
+    for v in ("contemporary_cue_types", "historical_cue_types", "mode_secondary", "landmarks"):
+        # Not validated (02_kodeks.md): checked on flagged images only.
+        proposal.append({"variable": v, "decision": "review_flagged"})
+    with open(out_dir / "decisions_proposed.csv", "w", newline="", encoding="utf-8") as f:
+        w = csv.DictWriter(f, fieldnames=["variable", "decision"], lineterminator="\n")
+        w.writeheader()
+        w.writerows(proposal)
     write_new_text(out_dir / "validation_report.html", _report(rows, confusions, inp, n_boot))
     print(f"Raport walidacji: {out_dir / 'validation_report.html'}")
+    print(f"Propozycja decyzji: {out_dir / 'decisions_proposed.csv'} (po bramce 3 zapisz swoje decyzje jako data/human/decisions.csv)")
     for r in rows:
         if r["decision"]:
             a = r["alpha_model_human"]
