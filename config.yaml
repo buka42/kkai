@@ -27,8 +27,8 @@ generators:
 
 reps: {test: 1, pilot: 2, main: 20}
 pilot_languages: [EN]
-# 4 prompts x 2 generators = 8 images (protocol section 4). Format: FRAME-SCALE-LANGUAGE.
-test_conditions: [B-K-EN, W-K-EN, T-Z-EN, WT-Z-EN]
+# 4 prompts x 2 languages x 2 generators = 16 images (decision 21.10). Format: FRAME-SCALE-LANGUAGE.
+test_conditions: [B-K-EN, W-K-EN, T-Z-EN, WT-Z-EN, B-K-PL, W-K-PL, T-Z-PL, WT-Z-PL]
 
 coder:
   model: gpt-6.1-sol

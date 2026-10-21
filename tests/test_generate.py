@@ -49,18 +49,18 @@ def test_full_run_and_resume_without_duplicates(cfg):
     run(cfg, provs)
     run(cfg, provs)
     log = read_log(cfg, "test")
-    assert len(log) == 8
-    assert len({r["request_uid"] for r in log}) == 8
+    assert len(log) == 16
+    assert len({r["request_uid"] for r in log}) == 16
     assert all(r["final"] and r["status"] == "ok" for r in log)
-    assert len(list((cfg.data_dir / "raw").glob("*.png"))) == 8
+    assert len(list((cfg.data_dir / "raw").glob("*.png"))) == 16
 
 
 def test_refusal_is_final_and_not_retried(cfg):
     write_plan(cfg, "test")
-    provs = {"OA": Scripted([P.REFUSED] * 4), "GG": Scripted([P.REFUSED] * 4)}
+    provs = {"OA": Scripted([P.REFUSED] * 8), "GG": Scripted([P.REFUSED] * 8)}
     run(cfg, provs)
     log = read_log(cfg, "test")
-    assert len(log) == 8 and all(r["status"] == "refused" and r["attempt"] == 1 for r in log)
+    assert len(log) == 16 and all(r["status"] == "refused" and r["attempt"] == 1 for r in log)
 
 
 def test_technical_errors_retried_three_times(cfg):
@@ -127,7 +127,7 @@ def test_log_fields_and_no_key_in_log(cfg, monkeypatch):
 def test_dry_run_fake_provider_end_to_end(cfg):
     write_plan(cfg, "test")
     out = run_generate(cfg, "test", assume_yes=True)
-    assert out["executed"] == 8
+    assert out["executed"] == 16
 
 
 def test_cost_limit_stops_before_calls(cfg):

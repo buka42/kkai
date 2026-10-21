@@ -6,7 +6,7 @@ from kkai.plan import build_plan, read_plan, write_plan
 from kkai.util import KkaiError
 
 
-@pytest.mark.parametrize("stage,total,conds,per", [("test", 8, 8, 1), ("pilot", 32, 16, 2), ("main", 640, 32, 20)])
+@pytest.mark.parametrize("stage,total,conds,per", [("test", 16, 16, 1), ("pilot", 32, 16, 2), ("main", 640, 32, 20)])
 def test_counts(cfg, stage, total, conds, per):
     rows = build_plan(cfg, stage)
     c = Counter(r["condition_code"] for r in rows)
