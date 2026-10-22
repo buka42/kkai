@@ -207,3 +207,29 @@ def test_sheet_and_ingest(cfg):
     with pytest.raises(KkaiError):
         run_ingest(cfg, filled, "pilot", "PB")
     assert run_ingest(cfg, filled, "pilot", "PB", round_no=2) == len(key)
+
+
+class FakeSyncClient:
+    def __init__(self, schema):
+        outer, self.calls, rng = self, 0, random.Random(0)
+
+        class Raw:
+            def create(self, **body):
+                outer.calls += 1
+                out = random_output(schema, rng)
+                text = json.dumps({"status": "completed", "model": "gpt-test", "output": [
+                    {"type": "message", "content": [{"type": "output_text", "text": json.dumps(out)}]}]})
+                return type("R", (), {"text": text, "status_code": 200, "headers": {"x-request-id": "r"}})
+
+        self.responses = type("Resp", (), {"with_raw_response": Raw()})()
+
+
+def test_mode_override_sync(cfg, schema):
+    _pilot(cfg)
+    cfg.raw["coder"]["mode"] = "batch"
+    cfg.raw["data_dir"] = str(cfg.data_dir)
+    cfg.dry_run = False
+    client = FakeSyncClient(schema)
+    done = run_code(cfg, "pilot", assume_yes=True, limit=3, client=client, mode="sync")
+    assert done["status"] == "done" and done["invalid"] == 0
+    assert client.calls == 3

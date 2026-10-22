@@ -48,7 +48,7 @@ def cmd_sample(args) -> None:
 def cmd_code(args) -> None:
     from .code_ai import run_code
     cfg = load_config(args.config, dry_run=args.dry_run)
-    run_code(cfg, args.set, assume_yes=args.yes, limit=args.limit, new_run=args.new_run)
+    run_code(cfg, args.set, assume_yes=args.yes, limit=args.limit, new_run=args.new_run, mode=args.mode)
 
 
 def cmd_sheet(args) -> None:
@@ -137,6 +137,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--yes", action="store_true", help="bez pytania o potwierdzenie kosztu")
     p.add_argument("--limit", type=int, default=None, help="koduj najwyżej N obrazów (np. 10 na próbę)")
     p.add_argument("--new-run", action="store_true", help="nowe przejście dla zbioru już zakodowanego")
+    p.add_argument("--mode", choices=["batch", "sync"], default=None,
+                   help="nadpisuje coder.mode z config.yaml (sync = od razu, np. na próbę)")
     p.set_defaults(func=cmd_code)
 
     p = sub.add_parser("sheet", help="arkusz XLSX i strona HTML do kodowania ręcznego")

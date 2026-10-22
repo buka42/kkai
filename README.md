@@ -36,7 +36,7 @@ cp .env.example .env             # then put your API keys in .env
 | `kkai sample` | Draws the validation set (5 per condition) and the retest and second-coder subsets (`data/human/*_ids.csv`) |
 | `kkai sheet --set pilot\|validation\|retest\|second` | Coding sheet (XLSX with drop-down lists) and an HTML page with the images, showing only `image_id` |
 | `kkai ingest --sheet FILE --set … --coder-id PB [--round 2]` | Checks a filled sheet and appends it to `data/human/human_codes.csv` |
-| `kkai code --set test\|pilot\|main\|validation-repeat` | Codes blinded images with the AI model (Batch API or one call per image); run it again to collect batch results |
+| `kkai code --set test\|pilot\|main\|validation-repeat` | Codes blinded images with the AI model (Batch API or one call per image); run it again to collect batch results; `--mode sync` overrides config for a quick test |
 | `kkai validate` | Model–human alpha per variable (bootstrap CI), model stability, confusion matrices, differential error (W/WT vs B/T, OA vs GG), test–retest, second coder; proposed gate-3 decisions |
 | `kkai review` | After gate 3 (`data/human/decisions.csv`): review sheet for the remaining images, model codes in separate columns |
 | `kkai review --ingest FILE` | Reads the filled review sheet; writes `review_corrections.csv` and `final_codes.csv` (code and source per variable) |
