@@ -2,7 +2,11 @@
 study_id: kkai_2026
 shuffle_seed: 20261029
 data_dir: data                 # --dry-run always writes to data_dryrun/ instead
-prompts: materials/prompts.csv
+# Decision 22.10 after the first pilot (31/32 images contemporary): "Obraz przedstawiający… /
+# An image of…" instead of "Fotografia przedstawiająca… / A photograph of…", so the medium does not
+# anchor the scene in the present. Earlier stages keep their wording.
+prompts: materials/prompts_v2.csv
+prompts_by_stage: {test: materials/prompts.csv, pilot: materials/prompts.csv}
 
 generators:
   # Every key except provider, model, cost_per_image_usd and min_interval_seconds
