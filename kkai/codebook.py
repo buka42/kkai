@@ -36,6 +36,55 @@ SHEET_FIELDS = ["image_id", *SHEET_COLUMNS, "notes", "coder_id", "coded_at"]
 # Variables coded by the optional second coder (protocol: 3 main variables).
 SECOND_CODER_COLUMNS = ["temporal_frame", "mode_dominant", "religion_form"]
 
+# Protocol 0.9.2 sec. 6 (decision 22.10): a flag sends only its own variables to review.
+_TIME = ["temporal_frame", "contemporary_cue_types", "historical_cue_types"]
+_MODE = ["mode_dominant", "mode_secondary"]
+_RELIGION = ["religion_form", "religion_traditions", "scripts"]
+_PLACE = ["place", "landmarks"]
+FLAG_VARIABLES = {
+    "religion_present": _RELIGION,
+    "script_marker": _RELIGION,
+    "dress_item_flag": _RELIGION,
+    "staged_time": _TIME,
+    "time_cues_conflict": _TIME,
+    "performer_or_religious_role": ["roles", *_MODE],
+    "landmark_uncertain": _PLACE,
+    "place_not_consistent": _PLACE,
+}
+# low_confidence_primary: variables named in ambiguity_note; matching errs towards more review.
+NOTE_KEYWORDS = [
+    (r"tempor|\btime\b|period|histor|contemporar|\bera\b|staged|anachron", _TIME),
+    (r"\bmode\b|heritage|spectacle|consumption|everyday", _MODE),
+    (r"\brole|perform|costum|sightsee|practi", ["roles"]),
+    (r"religio|sacred|church|synagogue|mosque|kippah|star of david|\bcross\b", _RELIGION),
+    (r"script|hebrew|cyrillic|arabic|letter|inscription", ["scripts"]),
+    (r"landmark|\bplace\b|building|location|krak", _PLACE),
+    (r"\bmedium\b|illustrat|render|painting|drawing", ["medium"]),
+    (r"number of people|people count|\bcrowd\b", ["people_count"]),
+]
+LOW_CONFIDENCE_DEFAULT = [*_TIME, *_MODE, "roles"]
+# Identity terms in observations put the description of people in doubt.
+IDENTITY_TERMS_VARIABLES = [*_RELIGION, "roles"]
+
+
+def review_variables(row: dict) -> list[str]:
+    """Sheet variables to review in one image, from a flattened ai_codes row.
+
+    Reasons are the model's plus those the program recomputed (flags_missing).
+    """
+    reasons = {r for r in (row.get("review_reasons", "") + ";" + row.get("flags_missing", "")).split(";") if r}
+    out = set()
+    for r in reasons:
+        out.update(FLAG_VARIABLES.get(r, []))
+    if "low_confidence_primary" in reasons:
+        note = row.get("ambiguity_note", "").lower()
+        named = {v for pat, vs in NOTE_KEYWORDS if re.search(pat, note) for v in vs}
+        out.update(named or LOW_CONFIDENCE_DEFAULT)
+    if row.get("identity_terms"):
+        out.update(IDENTITY_TERMS_VARIABLES)
+    return [v for v in SHEET_COLUMNS if v in out]
+
+
 # Words that must not appear in observations (03_instrukcja_kodera.md, pilot check 3).
 IDENTITY_TERMS = ["jewish man", "jewish woman", "jewish people", "jews", "hasid", "hasidic", "orthodox jew",
                   "muslim", "ukrainian", "migrant", "immigrant", "refugee", "tourist from", "arab", "roma",

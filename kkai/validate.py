@@ -16,7 +16,7 @@ from pathlib import Path
 
 import numpy as np
 
-from .codebook import SECOND_CODER_COLUMNS, SHEET_COLUMNS, allowed_values, load_schema
+from .codebook import FLAG_VARIABLES, SECOND_CODER_COLUMNS, SHEET_COLUMNS, allowed_values, load_schema
 from .config import Config
 from .prepare import read_key
 from .util import KkaiError, read_csv, utc_now, write_new_text
@@ -127,6 +127,29 @@ def fisher_rate(err: dict, key: dict, group_fn, alternative: str) -> tuple:
     return a[0] / a[1], b[0] / b[1], float(p)
 
 
+FLAG_NAMES = [*FLAG_VARIABLES, "low_confidence_primary", "identity_terms"]
+
+
+def flag_rates(model: list[dict], key: dict) -> list[dict]:
+    """Share of images with each review flag, per condition and per frame (protocol 0.9.2 sec. 6)."""
+    groups = defaultdict(list)
+    for r in model:
+        k = key.get(r["image_id"])
+        if k is None:
+            continue
+        reasons = {x for x in (r.get("review_reasons", "") + ";" + r.get("flags_missing", "")).split(";") if x}
+        if r.get("identity_terms"):
+            reasons.add("identity_terms")
+        groups[("condition", k["condition_code"])].append(reasons)
+        groups[("frame", k["frame"])].append(reasons)
+    out = []
+    for (level, name), sets in sorted(groups.items()):
+        row = {"level": level, "group": name, "n": len(sets), "any_flag": sum(bool(x) for x in sets) / len(sets)}
+        row.update({f: sum(f in x for x in sets) / len(sets) for f in FLAG_NAMES})
+        out.append(row)
+    return out
+
+
 def decide(alpha: float, stability: float, differential: bool) -> str:
     """Protocol section 6 decision rule."""
     if math.isnan(alpha):
@@ -207,7 +230,13 @@ def run_validate(cfg: Config) -> Path:
         w = csv.DictWriter(f, fieldnames=["variable", "decision"], lineterminator="\n")
         w.writeheader()
         w.writerows(proposal)
-    write_new_text(out_dir / "validation_report.html", _report(rows, confusions, inp, n_boot))
+    flags = flag_rates(inp["model"], key)
+    if flags:
+        with open(out_dir / "flag_rates.csv", "w", newline="", encoding="utf-8") as f:
+            w = csv.DictWriter(f, fieldnames=list(flags[0]), lineterminator="\n")
+            w.writeheader()
+            w.writerows({k: (f"{v:.3f}" if isinstance(v, float) else v) for k, v in r.items()} for r in flags)
+    write_new_text(out_dir / "validation_report.html", _report(rows, confusions, inp, n_boot, flags))
     print(f"Raport walidacji: {out_dir / 'validation_report.html'}")
     print(f"Propozycja decyzji: {out_dir / 'decisions_proposed.csv'} (po bramce 3 zapisz swoje decyzje jako data/human/decisions.csv)")
     for r in rows:
@@ -224,7 +253,7 @@ def _fmt(v):
     return html.escape(str(v))
 
 
-def _report(rows, confusions, inp, n_boot) -> str:
+def _report(rows, confusions, inp, n_boot, flags=()) -> str:
     head = "".join(f"<th>{html.escape(k)}</th>" for k in rows[0])
     body = "".join("<tr>" + "".join(f"<td>{_fmt(v)}</td>" for v in r.values()) + "</tr>" for r in rows)
     cms = []
@@ -234,6 +263,12 @@ def _report(rows, confusions, inp, n_boot) -> str:
         t += "".join("<tr><th>" + hc + "</th>" + "".join(f"<td>{cm.get((hc, mc), 0)}</td>" for mc in cats) + "</tr>"
                      for hc in cats)
         cms.append(f"<h3>{name}</h3><table>{t}</table>")
+    ftab = ""
+    if flags:
+        ftab = ("<h2>Odsetek flag (kody modelu, etap main)</h2><table><tr>"
+                + "".join(f"<th>{html.escape(k)}</th>" for k in flags[0]) + "</tr>"
+                + "".join("<tr>" + "".join(f"<td>{_fmt(v)}</td>" for v in r.values()) + "</tr>" for r in flags)
+                + "</table>")
     return f"""<!doctype html><html lang="pl"><head><meta charset="utf-8"><title>Walidacja kodowania</title>
 <style>body{{font-family:sans-serif;margin:16px}}table{{border-collapse:collapse;margin-bottom:16px}}
 td,th{{border:1px solid #ccc;padding:3px 6px;font-size:13px}}</style></head><body>
@@ -245,6 +280,7 @@ Przedziały: bootstrap po obrazach, {n_boot} powtórzeń.</p>
 α .67–.80 → <b>review_all</b>; α &lt; .67 albo błąd różnicowy → <b>manual_all</b>. Błąd różnicowy: jednostronny test Fishera
 (W/WT częściej niż B/T) albo dwustronny (OA vs GG), p &lt; .05. α ≥ .80 przy stabilności &lt; .90 protokół nie rozstrzyga; program daje review_all.</p>
 <table><tr>{head}</tr>{body}</table>
+{ftab}
 <h2>Macierze pomyłek</h2>{''.join(cms)}
 </body></html>
 """

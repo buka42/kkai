@@ -129,6 +129,9 @@ place
                               sea in the background, palm trees, non-European
                               architecture, invented monumental buildings
   indeterminate               cannot be judged (e.g. close-up)
+  Judge place from buildings and landscape only. Text naming a place (for
+  example a sign reading 'KAZIMIERZ KRAKÓW') is not a landmark feature and does
+  not change place; transcribe it in text_in_image.
   If only 1 feature of a landmark matches, use generic_historic_townscape, add
   landmark_uncertain and name the candidate in ambiguity_note.
 
