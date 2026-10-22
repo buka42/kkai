@@ -69,7 +69,9 @@ def run_sheet(cfg: Config, set_name: str) -> tuple[Path, Path]:
     return xlsx, page
 
 
-def _write_xlsx(path: Path, ids: list[str], fields: list[str], allowed: dict) -> None:
+def _write_xlsx(path: Path, ids: list[str], fields: list[str], allowed: dict,
+                values: dict[str, dict] | None = None) -> None:
+    """Coding sheet; `values` (image_id -> {field: value}) pre-fills rows, e.g. from kkai annotate."""
     wb = Workbook()
     ws = wb.active
     ws.title = "codes"
@@ -80,7 +82,8 @@ def _write_xlsx(path: Path, ids: list[str], fields: list[str], allowed: dict) ->
         c.font = Font(bold=True)
         c.fill = PatternFill("solid", fgColor="DDDDDD")
     for i in ids:
-        ws.append([i] + [None] * (len(fields) - 1))
+        rec = (values or {}).get(i, {})
+        ws.append([i] + [rec.get(f) or None for f in fields[1:]])
     ws.freeze_panes = "B2"
     n = len(ids) + 1
 
