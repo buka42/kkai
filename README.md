@@ -35,6 +35,7 @@ cp .env.example .env             # then put your API keys in .env
 | `kkai prepare --stage …` | Blinds the images (`data/blinded/<stage>/`) and writes the key |
 | `kkai sample` | Draws the validation set (5 per condition) and the retest and second-coder subsets (`data/human/*_ids.csv`) |
 | `kkai sheet --set pilot\|validation\|retest\|second` | Coding sheet (XLSX with drop-down lists) and an HTML page with the images, showing only `image_id` |
+| `kkai annotate --set … --coder-id PB` | Browser coding tool on 127.0.0.1: one image at a time, codes by clicking; answers appended to `data/human/<set>_annotate_<coder>.jsonl`, "Zapisz arkusz" writes a new XLSX for `kkai ingest` |
 | `kkai ingest --sheet FILE --set … --coder-id PB [--round 2]` | Checks a filled sheet and appends it to `data/human/human_codes.csv` |
 | `kkai code --set test\|pilot\|main\|validation-repeat` | Codes blinded images with the AI model (Batch API or one call per image); run it again to collect batch results; `--mode sync` overrides config for a quick test |
 | `kkai validate` | Model–human alpha per variable (bootstrap CI), model stability, confusion matrices, differential error (W/WT vs B/T, OA vs GG), test–retest, second coder; proposed gate-3 decisions |

@@ -57,6 +57,12 @@ def cmd_sheet(args) -> None:
     run_sheet(cfg, args.set)
 
 
+def cmd_annotate(args) -> None:
+    from .annotate import run_annotate
+    cfg = load_config(args.config, dry_run=args.dry_run)
+    run_annotate(cfg, args.set, args.coder_id, port=args.port)
+
+
 def cmd_ingest(args) -> None:
     from .ingest import run_ingest
     cfg = load_config(args.config, dry_run=args.dry_run)
@@ -145,6 +151,13 @@ def build_parser() -> argparse.ArgumentParser:
     _common(p)
     p.add_argument("--set", required=True, choices=["pilot", "validation", "retest", "second"])
     p.set_defaults(func=cmd_sheet)
+
+    p = sub.add_parser("annotate", help="kodowanie ręczne w przeglądarce: obraz i przyciski, zapis do arkusza")
+    _common(p)
+    p.add_argument("--set", required=True, choices=["pilot", "validation", "retest", "second"])
+    p.add_argument("--coder-id", required=True, help="identyfikator kodera, np. PB")
+    p.add_argument("--port", type=int, default=8765)
+    p.set_defaults(func=cmd_annotate)
 
     p = sub.add_parser("ingest", help="wczytuje wypełniony arkusz do human_codes.csv")
     _common(p)
