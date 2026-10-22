@@ -28,7 +28,7 @@ generators:
     cost_per_image_usd: 0.05
     min_interval_seconds: 1.0
 
-reps: {test: 1, pilot: 1, main: 20}
+reps: {test: 1, pilot: 1, pilot2: 1, main: 20}
 # Pilot covers all 32 cells once, both languages (decision 22.10).
 pilot_languages: [EN, PL]
 # 4 prompts x 2 languages x 2 generators = 16 images (decision 21.10). Format: FRAME-SCALE-LANGUAGE.

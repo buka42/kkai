@@ -5,7 +5,7 @@ from __future__ import annotations
 import random
 from pathlib import Path
 
-from .config import Config, STAGES
+from .config import PILOT_STAGES, Config, STAGES
 from .util import KkaiError, read_csv, write_csv_once
 
 PLAN_FIELDS = ["run_order", "request_uid", "stage", "condition_code", "frame", "scale",
@@ -43,14 +43,19 @@ def stage_cells(cfg: Config, stage: str) -> list[tuple[str, str, str]]:
         if not cells:
             raise KkaiError("Brak test_conditions w config.yaml")
         return cells
-    languages = [l.upper() for l in cfg.raw.get("pilot_languages", LANGUAGES)] if stage == "pilot" else list(LANGUAGES)
+    languages = [l.upper() for l in cfg.raw.get("pilot_languages", LANGUAGES)] if stage in PILOT_STAGES else list(LANGUAGES)
     return [(f, s, l) for f in FRAMES for s in SCALES for l in languages]
+
+
+def prompts_path(cfg: Config, stage: str):
+    """Prompt file of a stage: prompts_by_stage overrides prompts (earlier stages keep their wording)."""
+    return cfg.path(cfg.raw.get("prompts_by_stage", {}).get(stage, cfg.raw["prompts"]))
 
 
 def build_plan(cfg: Config, stage: str) -> list[dict]:
     if stage not in STAGES:
         raise KkaiError(f"Nieznany etap {stage!r}; dozwolone: {', '.join(STAGES)}")
-    prompts = load_prompts(cfg.path(cfg.raw["prompts"]))
+    prompts = load_prompts(prompts_path(cfg, stage))
     reps = int(cfg.raw["reps"][stage])
     gens = list(cfg.generators)
     # Seeding with a string is deterministic across runs and platforms.

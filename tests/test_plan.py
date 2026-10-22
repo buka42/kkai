@@ -6,7 +6,7 @@ from kkai.plan import build_plan, read_plan, write_plan
 from kkai.util import KkaiError
 
 
-@pytest.mark.parametrize("stage,total,conds,per", [("test", 16, 16, 1), ("pilot", 32, 32, 1), ("main", 640, 32, 20)])
+@pytest.mark.parametrize("stage,total,conds,per", [("test", 16, 16, 1), ("pilot", 32, 32, 1), ("pilot2", 32, 32, 1), ("main", 640, 32, 20)])
 def test_counts(cfg, stage, total, conds, per):
     rows = build_plan(cfg, stage)
     c = Counter(r["condition_code"] for r in rows)
@@ -51,3 +51,16 @@ def test_plan_file_never_overwritten(cfg):
         write_plan(cfg, "test")
     with pytest.raises(KkaiError):
         read_plan(cfg, "test")
+
+
+def test_prompts_by_stage_keeps_earlier_wording(cfg, tmp_path):
+    new = tmp_path / "materials" / "prompts_new.csv"
+    old = (tmp_path / "materials" / "prompts.csv").read_text(encoding="utf-8")
+    new.write_text(old.replace("A photograph of", "An image of"), encoding="utf-8")
+    cfg.raw["prompts"] = "materials/prompts_new.csv"
+    cfg.raw["prompts_by_stage"] = {"pilot": "materials/prompts.csv"}
+    assert all(r["prompt_exact"].startswith(("A photograph", "Fotografia")) for r in build_plan(cfg, "pilot"))
+    en = [r for r in build_plan(cfg, "pilot2") if r["language"] == "EN"]
+    assert en and all(r["prompt_exact"].startswith("An image of") for r in en)
+    # A different stage name gives a different, independent shuffle.
+    assert [r["condition_code"] for r in build_plan(cfg, "pilot")] != [r["condition_code"] for r in build_plan(cfg, "pilot2")]

@@ -21,16 +21,16 @@ from .config import Config
 from .prepare import read_key
 from .util import KkaiError, read_csv, write_new_text
 
-SHEET_SETS = ("pilot", "validation", "retest", "second")
+SHEET_SETS = ("pilot", "pilot2", "validation", "retest", "second")
 
 
 def sheet_ids(cfg: Config, set_name: str) -> list[str]:
     human = cfg.dir("human")
-    if set_name == "pilot":
-        ids = sorted(r["image_id"] for r in read_key(cfg) if r["stage"] == "pilot")
+    if set_name in ("pilot", "pilot2"):
+        ids = sorted(r["image_id"] for r in read_key(cfg) if r["stage"] == set_name)
         if not ids:
-            raise KkaiError("Brak obrazów pilotażu. Najpierw: kkai prepare --stage pilot")
-        random.Random(f"{cfg.seed}:sheet:pilot").shuffle(ids)
+            raise KkaiError(f"Brak obrazów etapu {set_name}. Najpierw: kkai prepare --stage {set_name}")
+        random.Random(f"{cfg.seed}:sheet:{set_name}").shuffle(ids)
         return ids
     src = {"validation": "validation_ids.csv", "retest": "retest_ids.csv", "second": "second_ids.csv"}[set_name]
     path = human / src
