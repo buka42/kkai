@@ -1,7 +1,8 @@
 """Review of the remaining main-stage images after gate 3, and the final codes.
 
 decisions.csv (data/human/) holds your gate-3 decision per variable:
-review_flagged, review_all or manual_all. The review sheet keeps the model
+review_flagged, review_all or manual_all. With review_flagged a variable is
+reviewed only in images whose flags point to it (codebook.FLAG_VARIABLES). The review sheet keeps the model
 codes in their own columns; your corrections go into separate columns.
 """
 
@@ -15,7 +16,7 @@ from pathlib import Path
 from openpyxl import Workbook, load_workbook
 from openpyxl.styles import Font, PatternFill
 
-from .codebook import SHEET_COLUMNS, allowed_values, load_schema
+from .codebook import SHEET_COLUMNS, allowed_values, load_schema, review_variables
 from .config import Config
 from .prepare import read_key
 from .util import KkaiError, read_csv, sha256_file, utc_now, write_csv_once, write_new_text
@@ -67,14 +68,25 @@ def review_plan(cfg: Config) -> list[dict]:
     plan = []
     for iid in main_ids:
         m = model.get(iid)
-        flagged = m is None or m.get("valid") != "True" or m.get("needs_review_program") == "True"
-        review = [v for v, d in dec.items() if d == "review_all" or (d == "review_flagged" and flagged)]
+        # review_flagged: only the variables the image's flags point to (protocol 0.9.2 sec. 6).
+        flag_vars = review_variables(m) if m is not None and m.get("valid") == "True" else list(SHEET_COLUMNS)
+        flagged = bool(flag_vars)
+        review = [v for v, d in dec.items() if d == "review_all" or (d == "review_flagged" and v in flag_vars)]
         manual = [v for v, d in dec.items() if d == "manual_all"]
         if m is None or m.get("valid") != "True":
             manual, review = manual + review, []  # no usable model codes: code by hand
         if review or manual:
-            plan.append({"image_id": iid, "review": review, "manual": manual, "flagged": flagged, "model": m or {}})
+            plan.append({"image_id": iid, "review": review, "manual": manual, "flagged": flagged,
+                         "flag_vars": flag_vars, "model": m or {}})
     return plan
+
+
+def _reasons(m: dict) -> str:
+    """Model's review reasons plus those the program added."""
+    rs = {r for r in (m.get("review_reasons", "") + ";" + m.get("flags_missing", "")).split(";") if r}
+    if m.get("identity_terms"):
+        rs.add("identity_terms")
+    return ";".join(sorted(rs))
 
 
 def run_review(cfg: Config) -> tuple[Path, Path]:
@@ -97,7 +109,7 @@ def run_review(cfg: Config) -> tuple[Path, Path]:
         c.font = Font(bold=True)
     for p in plan:
         m = p["model"]
-        row = [p["image_id"], p["flagged"], m.get("review_reasons", "")]
+        row = [p["image_id"], p["flagged"], _reasons(m)]
         for v in variables:
             if v in p["review"]:
                 row += [m.get(v, ""), None]
@@ -135,7 +147,7 @@ def _review_html(cfg, page, plan, variables) -> None:
                         for v in variables if v in p["review"] or v in p["manual"])
         aux = "".join(f"<tr><th>{a}</th><td>{html.escape(str(m.get(a, '')))}</td></tr>" for a in AUX) if p["flagged"] else ""
         items.append(f'<section id="{p["image_id"]}"><img src="{html.escape(rel)}" loading="lazy">'
-                     f'<div><h2>{p["image_id"]}</h2><p>{html.escape(m.get("review_reasons", ""))}</p>'
+                     f'<div><h2>{p["image_id"]}</h2><p>{html.escape(_reasons(m))}</p>'
                      f'<table>{cells}{aux}</table></div></section>')
     doc = f"""<!doctype html><html lang="pl"><head><meta charset="utf-8"><title>kkai: przegląd</title>
 <style>body{{font-family:sans-serif;margin:16px}}section{{display:flex;gap:16px;margin-bottom:32px;flex-wrap:wrap}}

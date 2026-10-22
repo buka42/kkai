@@ -233,3 +233,17 @@ def test_mode_override_sync(cfg, schema):
     done = run_code(cfg, "pilot", assume_yes=True, limit=3, client=client, mode="sync")
     assert done["status"] == "done" and done["invalid"] == 0
     assert client.calls == 3
+
+
+def test_flags_point_to_variables():
+    from kkai.codebook import review_variables
+    assert review_variables({"review_reasons": "religion_present"}) == ["religion_form", "religion_traditions", "scripts"]
+    assert review_variables({"review_reasons": "", "flags_missing": "staged_time"}) == \
+        ["temporal_frame", "contemporary_cue_types", "historical_cue_types"]
+    assert review_variables({"review_reasons": "landmark_uncertain"}) == ["place", "landmarks"]
+    assert review_variables({"review_reasons": ""}) == []
+    # low_confidence_primary: the variable named in the note, else time, mode and roles.
+    assert review_variables({"review_reasons": "low_confidence_primary",
+                             "ambiguity_note": "Medium unclear: may be an illustration."}) == ["medium"]
+    assert review_variables({"review_reasons": "low_confidence_primary", "ambiguity_note": ""}) == \
+        ["temporal_frame", "contemporary_cue_types", "historical_cue_types", "mode_dominant", "mode_secondary", "roles"]

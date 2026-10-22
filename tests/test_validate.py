@@ -87,3 +87,16 @@ def test_model_errs_only_in_multicultural_conditions(cfg):
     assert row["differential_error"] == "True"
     assert row["decision"] == "manual_all"
     assert float(row["error_rate_W_WT"]) == 1.0 and float(row["error_rate_B_T"]) == 0.0
+
+
+def test_flag_rates_per_condition_and_frame():
+    from kkai.validate import flag_rates
+    key = {"a": {"condition_code": "W-K-EN-OA", "frame": "W"}, "b": {"condition_code": "W-K-EN-OA", "frame": "W"},
+           "c": {"condition_code": "B-K-EN-OA", "frame": "B"}}
+    model = [{"image_id": "a", "review_reasons": "religion_present", "flags_missing": "", "identity_terms": ""},
+             {"image_id": "b", "review_reasons": "", "flags_missing": "", "identity_terms": "jews"},
+             {"image_id": "c", "review_reasons": "", "flags_missing": "", "identity_terms": ""}]
+    rows = {(r["level"], r["group"]): r for r in flag_rates(model, key)}
+    w = rows[("condition", "W-K-EN-OA")]
+    assert w["n"] == 2 and w["any_flag"] == 1.0 and w["religion_present"] == 0.5 and w["identity_terms"] == 0.5
+    assert rows[("frame", "B")]["any_flag"] == 0.0
