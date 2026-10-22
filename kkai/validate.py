@@ -1,6 +1,8 @@
 """Agreement between the AI coder and the human coder; decision table for gate 3.
 
 Per variable: Krippendorff's alpha model–human (bootstrap CI over images),
+percent agreement and Gwet's AC1 (used instead of alpha when one category
+covers more than 90% of the validation images, protocol 0.9.5 sec. 6),
 model stability (two model runs), confusion matrices, differential error
 (W/WT vs B/T; OA vs GG), test–retest and, if present, the second coder.
 """
@@ -24,6 +26,11 @@ from .util import KkaiError, read_csv, utc_now, write_new_text
 SINGLE_VARS = ["medium", "temporal_frame", "mode_dominant", "religion_form", "place"]
 # Multi-select variables are split into one 0/1 variable per category (02_kodeks.md).
 BINARY_FROM = ["roles", "scripts", "religion_traditions"]
+# Categories assessed together as one 0/1 variable (protocol 0.9.5 sec. 6); the parts are still reported.
+COMBINED = {"scripts": [("hebrew", "hebrew_like")]}
+SKEW_SHARE = 0.90
+# (reliability level, minimum percent agreement, minimum AC1) for skewed variables.
+SKEW_RULES = ((0.80, 0.95, 0.80), (0.67, 0.90, 0.67))
 
 
 def alpha_nominal(data: list[list]) -> float:
@@ -61,6 +68,42 @@ def alpha_with_ci(a: dict, b: dict, n_boot: int, seed: int) -> tuple[float, floa
     return est, float(lo), float(hi), len(units)
 
 
+def percent_agreement(a: dict, b: dict) -> float:
+    units = sorted(set(a) & set(b))
+    return sum(a[u] == b[u] for u in units) / len(units) if units else float("nan")
+
+
+def gwet_ac1(a: dict, b: dict, categories: list[str]) -> float:
+    """Gwet's AC1 for two coders, nominal; categories = all allowed values (Q)."""
+    units = sorted(set(a) & set(b))
+    q = len(categories)
+    if not units or q < 2:
+        return float("nan")
+    n = len(units)
+    pa = sum(a[u] == b[u] for u in units) / n
+    counts = Counter(a[u] for u in units) + Counter(b[u] for u in units)
+    pe = sum((counts[c] / (2 * n)) * (1 - counts[c] / (2 * n)) for c in categories) / (q - 1)
+    return 1.0 if pe == 1 else (pa - pe) / (1 - pe)
+
+
+def top_share(values: dict) -> float:
+    return max(Counter(values.values()).values()) / len(values) if values else float("nan")
+
+
+def reliability_level(alpha: float, agreement: float, ac1: float, skewed: bool) -> float:
+    """Threshold the variable reaches: 0.80, 0.67 or 0.0 (nan without data)."""
+    if skewed:
+        if math.isnan(agreement):
+            return float("nan")
+        for level, min_pa, min_ac1 in SKEW_RULES:
+            if agreement >= min_pa and ac1 >= min_ac1:
+                return level
+        return 0.0
+    if math.isnan(alpha):
+        return float("nan")
+    return 0.80 if alpha >= 0.80 else (0.67 if alpha >= 0.67 else 0.0)
+
+
 def _pair_alpha(a: dict, b: dict) -> float:
     units = sorted(set(a) & set(b))
     return alpha_nominal([[a[u] for u in units], [b[u] for u in units]]) if units else float("nan")
@@ -72,7 +115,14 @@ def variables(allowed: dict) -> list[tuple[str, str, str | None]]:
     for col in BINARY_FROM:
         for cat in allowed[col]:
             out.append((f"{col}:{cat}", col, cat))
+        for group in COMBINED.get(col, []):
+            out.append((f"{col}:{'+'.join(group)}", col, "+".join(group)))
     return out
+
+
+def _decisive(col: str, cat: str) -> bool:
+    """False for categories that are judged only as part of a combined category."""
+    return not any(cat in group for group in COMBINED.get(col, []))
 
 
 def value(row: dict, col: str, cat: str | None):
@@ -81,7 +131,8 @@ def value(row: dict, col: str, cat: str | None):
         return None
     if cat is None:
         return raw or None
-    return "1" if cat in [c for c in raw.split(";") if c] else "0"
+    present = {c for c in raw.split(";") if c}
+    return "1" if present & set(cat.split("+")) else "0"
 
 
 def _by_image(rows: list[dict], col: str, cat: str | None) -> dict:
@@ -150,13 +201,13 @@ def flag_rates(model: list[dict], key: dict) -> list[dict]:
     return out
 
 
-def decide(alpha: float, stability: float, differential: bool) -> str:
-    """Protocol section 6 decision rule."""
-    if math.isnan(alpha):
+def decide(level: float, stability: float, differential: bool) -> str:
+    """Protocol section 6 decision rule; level from reliability_level()."""
+    if math.isnan(level):
         return "no_data"
-    if alpha < 0.67 or differential:
+    if level < 0.67 or differential:
         return "manual_all"
-    if alpha >= 0.80 and (math.isnan(stability) or stability >= 0.90):
+    if level >= 0.80 and (math.isnan(stability) or stability >= 0.90):
         return "review_flagged" if not math.isnan(stability) else "review_flagged_pending_stability"
     return "review_all"
 
@@ -172,9 +223,14 @@ def run_validate(cfg: Config) -> Path:
         m = _by_image(inp["model"], col, cat)
         h = _by_image(inp["human"], col, cat)
         a, lo, hi, n = alpha_with_ci(m, h, n_boot, seed)
+        both = sorted(set(m) & set(h))
+        pa = percent_agreement(m, h)
+        ac1 = gwet_ac1(m, h, allowed[col] if cat is None else ["0", "1"])
+        share = top_share({u: h[u] for u in both})
+        skewed = not math.isnan(share) and share > SKEW_SHARE
+        level = reliability_level(a, pa, ac1, skewed)
         rep = _by_image(inp["model_repeat"], col, cat)
         stab = _pair_alpha(m, rep)
-        both = sorted(set(m) & set(h))
         err = {u: int(m[u] != h[u]) for u in both if u in key}
         w_rate, b_rate, p_w = fisher_rate(err, key, lambda k: k["frame"] in ("W", "WT"), "greater")
         oa_rate, gg_rate, p_g = fisher_rate(err, key, lambda k: k["generator"] == "OA", "two-sided")
@@ -183,23 +239,26 @@ def run_validate(cfg: Config) -> Path:
         second = _pair_alpha(h, _by_image(inp["second"], col, cat)) if col in SECOND_CODER_COLUMNS else float("nan")
         rows.append({
             "variable": name, "n": n, "alpha_model_human": a, "ci_low": lo, "ci_high": hi,
+            "agreement": pa, "ac1": ac1, "top_category_share": share, "skewed": skewed, "level": level,
             "model_stability": stab, "error_rate_W_WT": w_rate, "error_rate_B_T": b_rate, "p_W_vs_B": p_w,
             "error_rate_OA": oa_rate, "error_rate_GG": gg_rate, "p_OA_vs_GG": p_g,
             "differential_error": differential, "test_retest_alpha": rt, "second_coder_alpha": second,
-            "decision": decide(a, stab, differential) if cat is None else "",
+            "decision": decide(level, stab, differential) if cat is None else "",
         })
         if cat is None:
             confusions[name] = Counter((h[u], m[u]) for u in both)
 
-    # Multi-select variables get one decision from the lowest alpha among their categories.
+    # Multi-select variables get one decision from the weakest category (lowest level, then lowest alpha).
     for col in BINARY_FROM:
-        sub = [r for r in rows if r["variable"].startswith(col + ":") and not math.isnan(r["alpha_model_human"])]
+        sub = [r for r in rows if r["variable"].startswith(col + ":") and not math.isnan(r["level"])
+               and _decisive(col, r["variable"].split(":", 1)[1])]
         if sub:
-            worst = min(sub, key=lambda r: r["alpha_model_human"])
+            worst = min(sub, key=lambda r: (r["level"], r["alpha_model_human"]))
             rows.append({**{k: "" for k in rows[0]}, "variable": col, "n": worst["n"],
-                         "alpha_model_human": worst["alpha_model_human"],
+                         "alpha_model_human": worst["alpha_model_human"], "agreement": worst["agreement"],
+                         "ac1": worst["ac1"], "skewed": worst["skewed"], "level": worst["level"],
                          "differential_error": any(r["differential_error"] for r in sub),
-                         "decision": decide(worst["alpha_model_human"],
+                         "decision": decide(worst["level"],
                                             min((r["model_stability"] for r in sub), default=float("nan")),
                                             any(r["differential_error"] for r in sub)),
                          "ci_low": worst["ci_low"], "ci_high": worst["ci_high"],
@@ -242,7 +301,8 @@ def run_validate(cfg: Config) -> Path:
     for r in rows:
         if r["decision"]:
             a = r["alpha_model_human"]
-            print(f"  {r['variable']:<22} α = {a:.2f}  →  {r['decision']}" if isinstance(a, float) and not math.isnan(a)
+            extra = f", zgodność {r['agreement']:.0%}, AC1 = {r['ac1']:.2f} (1 kategoria > 90%)" if r["skewed"] else ""
+            print(f"  {r['variable']:<22} α = {a:.2f}{extra}  →  {r['decision']}" if isinstance(a, float) and not math.isnan(a)
                   else f"  {r['variable']:<22} brak danych")
     return out_dir
 
@@ -277,7 +337,10 @@ td,th{{border:1px solid #ccc;padding:3px 6px;font-size:13px}}</style></head><bod
 powtórne kodowanie modelu: {len(inp['model_repeat'])}; test–retest: {len(inp['retest'])}; drugi koder: {len(inp['second'])}.
 Przedziały: bootstrap po obrazach, {n_boot} powtórzeń.</p>
 <p>Reguła (protokół, sekcja 6): α ≥ .80, stabilność ≥ .90 i brak błędu różnicowego → <b>review_flagged</b>;
-α .67–.80 → <b>review_all</b>; α &lt; .67 albo błąd różnicowy → <b>manual_all</b>. Błąd różnicowy: jednostronny test Fishera
+α .67–.80 → <b>review_all</b>; α &lt; .67 albo błąd różnicowy → <b>manual_all</b>.
+Gdy 1 kategoria obejmuje ponad 90% Twoich kodów (kolumna skewed), zamiast α decyduje zgodność i AC1 Gweta:
+próg .80 przy zgodności ≥ 95% i AC1 ≥ .80, próg .67 przy zgodności ≥ 90% i AC1 ≥ .67 (kolumna level).
+Pismo hebrajskie ocenia połączona kategoria scripts:hebrew+hebrew_like; hebrew i hebrew_like osobno są tylko informacyjne. Błąd różnicowy: jednostronny test Fishera
 (W/WT częściej niż B/T) albo dwustronny (OA vs GG), p &lt; .05. α ≥ .80 przy stabilności &lt; .90 protokół nie rozstrzyga; program daje review_all.</p>
 <table><tr>{head}</tr>{body}</table>
 {ftab}
