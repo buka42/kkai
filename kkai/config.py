@@ -11,7 +11,9 @@ import yaml
 from .util import KkaiError
 
 API_KEY_ENV = {"openai": "OPENAI_API_KEY", "gemini": "GEMINI_API_KEY"}
-STAGES = ("test", "pilot", "main")
+STAGES = ("test", "pilot", "pilot2", "main")
+# Pilot stages share pilot_languages; pilot2 is the repeat after the prompt change of 22.10.
+PILOT_STAGES = ("pilot", "pilot2")
 # Keys in a generator block that configure kkai and are not sent to the API.
 LOCAL_GENERATOR_KEYS = {"provider", "model", "cost_per_image_usd", "min_interval_seconds"}
 

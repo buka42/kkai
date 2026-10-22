@@ -20,7 +20,7 @@ from .prepare import read_key
 from .util import (KkaiError, append_jsonl, confirm, read_csv, read_jsonl, script_version, sha256_bytes,
                    sha256_file, utc_now, write_new_text)
 
-SETS = ("test", "pilot", "main", "validation-repeat")
+SETS = ("test", "pilot", "pilot2", "main", "validation-repeat")
 ENDPOINT = "/v1/responses"
 
 

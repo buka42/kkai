@@ -139,7 +139,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     p = sub.add_parser("code", help="kodowanie obrazów modelem (Batch albo pojedyncze wywołania)")
     _common(p)
-    p.add_argument("--set", required=True, choices=["test", "pilot", "main", "validation-repeat"])
+    p.add_argument("--set", required=True, choices=["test", "pilot", "pilot2", "main", "validation-repeat"])
     p.add_argument("--yes", action="store_true", help="bez pytania o potwierdzenie kosztu")
     p.add_argument("--limit", type=int, default=None, help="koduj najwyżej N obrazów (np. 10 na próbę)")
     p.add_argument("--new-run", action="store_true", help="nowe przejście dla zbioru już zakodowanego")
@@ -149,12 +149,12 @@ def build_parser() -> argparse.ArgumentParser:
 
     p = sub.add_parser("sheet", help="arkusz XLSX i strona HTML do kodowania ręcznego")
     _common(p)
-    p.add_argument("--set", required=True, choices=["pilot", "validation", "retest", "second"])
+    p.add_argument("--set", required=True, choices=["pilot", "pilot2", "validation", "retest", "second"])
     p.set_defaults(func=cmd_sheet)
 
     p = sub.add_parser("annotate", help="kodowanie ręczne w przeglądarce: obraz i przyciski, zapis do arkusza")
     _common(p)
-    p.add_argument("--set", required=True, choices=["pilot", "validation", "retest", "second"])
+    p.add_argument("--set", required=True, choices=["pilot", "pilot2", "validation", "retest", "second"])
     p.add_argument("--coder-id", required=True, help="identyfikator kodera, np. PB")
     p.add_argument("--port", type=int, default=8765)
     p.set_defaults(func=cmd_annotate)
@@ -162,7 +162,7 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("ingest", help="wczytuje wypełniony arkusz do human_codes.csv")
     _common(p)
     p.add_argument("--sheet", required=True, help="ścieżka do wypełnionego arkusza XLSX")
-    p.add_argument("--set", required=True, choices=["pilot", "validation", "retest", "second"])
+    p.add_argument("--set", required=True, choices=["pilot", "pilot2", "validation", "retest", "second"])
     p.add_argument("--coder-id", required=True, help="identyfikator kodera, np. PB")
     p.add_argument("--round", type=int, default=1, help="runda kodowania (test–retest: 2)")
     p.set_defaults(func=cmd_ingest)
