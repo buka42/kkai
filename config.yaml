@@ -14,7 +14,8 @@ generators:
     quality: medium
     moderation: auto
     n: 1
-    cost_per_image_usd: null     # fill in from the pricing page on test day
+    # API test 22.10: ~439 image output tokens x $30/1M = $0.013; rounded up for variance.
+    cost_per_image_usd: 0.015
     min_interval_seconds: 3.5    # Build tier: 20 images/min
   GG:
     provider: gemini
@@ -22,7 +23,9 @@ generators:
     image_size: 1K
     aspect_ratio: "1:1"
     response_modalities: [TEXT, IMAGE]
-    cost_per_image_usd: null
+    # API test 22.10: 1K image $0.0336 plus ~900 thinking and ~330 other output tokens
+    # billed as text; conservative until checked against the billing page.
+    cost_per_image_usd: 0.05
     min_interval_seconds: 1.0
 
 reps: {test: 1, pilot: 1, main: 20}

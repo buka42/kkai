@@ -160,7 +160,7 @@ def _coded(cfg: Config, run_id: str) -> set[str]:
 
 
 def run_code(cfg: Config, set_name: str, assume_yes: bool = False, limit: int | None = None,
-             new_run: bool = False, client=None, sleep=time.sleep) -> dict:
+             new_run: bool = False, client=None, sleep=time.sleep, mode: str | None = None) -> dict:
     if set_name not in SETS:
         raise KkaiError(f"Nieznany zbiór {set_name!r}; dozwolone: {', '.join(SETS)}")
     load_env(cfg.root)
@@ -178,7 +178,7 @@ def run_code(cfg: Config, set_name: str, assume_yes: bool = False, limit: int | 
     ids = image_ids_for_set(cfg, set_name)
     if limit is not None:
         ids = ids[:limit]
-    mode = "fake" if cfg.dry_run else cfg.raw["coder"].get("mode", "batch")
+    mode = "fake" if cfg.dry_run else (mode or cfg.raw["coder"].get("mode", "batch"))
     run_id = f"{set_name}-r{len(runs) + 1}"
     price = cfg.raw["coder"].get("cost_per_image_usd")
     print(f"Kodowanie {set_name}: {len(ids)} obrazów, model {cfg.raw['coder']['model']}, tryb {mode}, "
