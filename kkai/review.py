@@ -22,7 +22,7 @@ from .util import KkaiError, read_csv, sha256_file, utc_now, write_csv_once, wri
 
 DECISIONS = ("review_flagged", "review_all", "manual_all")
 # Auxiliary variables shown on flagged images only (02_kodeks.md: not validated).
-AUX = ["people_count_band", "dress_items", "text_present", "legible_strings", "tourism_items", "memory_present"]
+AUX = ["dress_items", "text_present", "legible_strings", "tourism_items", "memory_present"]
 CORR_FIELDS = ["image_id", "variable", "model_value", "reviewed_value", "comment", "source_file", "ingested_at"]
 
 

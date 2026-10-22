@@ -200,7 +200,7 @@ def run_validate(cfg: Config) -> Path:
                 w.writerow([hc, *[cm.get((hc, mc), 0) for mc in cats]])
     proposal = [{"variable": r["variable"], "decision": r["decision"]} for r in rows
                 if r["decision"] and ":" not in r["variable"]]
-    for v in ("contemporary_cue_types", "historical_cue_types", "mode_secondary", "landmarks"):
+    for v in ("people_count", "contemporary_cue_types", "historical_cue_types", "mode_secondary", "landmarks"):
         # Not validated (02_kodeks.md): checked on flagged images only.
         proposal.append({"variable": v, "decision": "review_flagged"})
     with open(out_dir / "decisions_proposed.csv", "w", newline="", encoding="utf-8") as f:

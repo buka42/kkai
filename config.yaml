@@ -35,7 +35,7 @@ coder:
   model: gpt-6.1-sol
   mode: batch                  # batch (50% cheaper, up to 24 h) or sync (one call per image, for the API test)
   reasoning_effort: medium
-  instruction: materials/coder_instruction_v0.9.txt   # switch to v1.0 after the freeze on 29.10
+  instruction: materials/coder_instruction_v0.9.1.txt   # switch to v1.0 after the freeze on 29.10
   schema: materials/coder_schema_v0.9.json
   user_message: Code this image according to the instruction.
   max_batch_mb: 180            # Batch API limit is 200 MB per input file

@@ -60,6 +60,8 @@ def simulate_sheet(cfg: Config, sheet: str) -> Path:
             if name.startswith("corr:") and multi and not base:
                 base = "-"
             cell.value = base
+        if "people_count" in header and "roles" in header and row[header.index("people_count")].value == "none":
+            row[header.index("roles")].value = None
         if "coder_id" in header:
             row[header.index("coder_id")].value = "SIM"
     out = path.with_name(path.stem + "_filled.xlsx")
