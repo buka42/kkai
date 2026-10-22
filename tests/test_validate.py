@@ -5,7 +5,7 @@ import random
 import pytest
 
 from kkai.prepare import KEY_FIELDS
-from kkai.validate import alpha_nominal, decide, run_validate
+from kkai.validate import alpha_nominal, decide, gwet_ac1, percent_agreement, reliability_level, run_validate, value, variables
 
 
 def test_alpha_identical_is_one():
@@ -25,6 +25,36 @@ def test_decide_rules():
     assert decide(0.60, 0.95, False) == "manual_all"
     assert decide(0.90, 0.95, True) == "manual_all"
     assert decide(float("nan"), 0.9, False) == "no_data"
+
+
+def test_ac1_and_agreement_on_skewed_data():
+    # Pilot 1 pattern: 31 of 32 one category, 2 disagreements -> low alpha, high AC1.
+    a = {i: "contemporary" for i in range(32)}
+    b = dict(a)
+    a[0], b[1] = "indeterminate", "indeterminate"
+    assert percent_agreement(a, b) == pytest.approx(30 / 32)
+    assert alpha_nominal([[a[i] for i in range(32)], [b[i] for i in range(32)]]) < 0.1
+    assert gwet_ac1(a, b, ["contemporary", "historical", "staged_historical", "indeterminate"]) > 0.9
+    assert gwet_ac1(a, a, ["contemporary", "indeterminate"]) == pytest.approx(1.0)
+
+
+def test_reliability_level_skewed_rule():
+    assert reliability_level(0.30, 0.96, 0.85, skewed=True) == 0.80
+    assert reliability_level(0.30, 0.94, 0.85, skewed=True) == 0.67
+    assert reliability_level(0.30, 0.89, 0.85, skewed=True) == 0.0
+    assert reliability_level(0.85, 0.80, 0.50, skewed=False) == 0.80
+    assert reliability_level(0.70, 0.80, 0.50, skewed=False) == 0.67
+    assert math.isnan(reliability_level(float("nan"), float("nan"), float("nan"), skewed=False))
+
+
+def test_hebrew_combined_category():
+    allowed = {"roles": ["sightseeing"], "scripts": ["latin", "hebrew", "hebrew_like"], "religion_traditions": ["jewish"]}
+    names = [n for n, _, _ in variables(allowed)]
+    assert "scripts:hebrew+hebrew_like" in names
+    assert value({"scripts": "hebrew_like;latin"}, "scripts", "hebrew+hebrew_like") == "1"
+    assert value({"scripts": "hebrew"}, "scripts", "hebrew+hebrew_like") == "1"
+    assert value({"scripts": "latin"}, "scripts", "hebrew+hebrew_like") == "0"
+    assert value({"scripts": "hebrew"}, "scripts", "hebrew_like") == "0"
 
 
 def _write(path, rows, fields):

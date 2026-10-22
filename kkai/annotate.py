@@ -24,7 +24,7 @@ from .config import Config
 from .sheets import SHEET_SETS, _write_xlsx, sheet_fields, sheet_ids
 from .util import KkaiError, append_jsonl, read_jsonl, utc_now
 
-# Labels and short hints in Polish, from 02_kodeks.md 0.9.1.
+# Labels and short hints in Polish, from 02_kodeks.md 0.9.2.
 LABELS = {
     "medium": "Medium",
     "people_count": "Liczba osób",
@@ -42,8 +42,8 @@ LABELS = {
 }
 HINTS = {
     "photo_colour": "fotografia w naturalnych kolorach",
-    "photo_aged": "cz.-b., sepia, ziarno, rysy, wyblakłe kolory",
-    "illustration": "rysunek, obraz, grafika, render niefotograficzny",
+    "photo_aged": "cz.-b./sepia/jeden ton albo ≥2 cechy postarzenia, w tym ≥1 ślad odbitki (rysy, plamy, zagięcia, pożółkły papier); samo ziarno lub przygaszone kolory to photo_colour",
+    "illustration": "widoczne cechy niefotograficzne: pociągnięcia pędzla lub pióra, płaskie plamy, kontury, faktura płótna; gładki obraz = photo_colour",
     "none": "brak",
     "1_5": "1–5 osób",
     "6_20": "6–20 osób",
@@ -54,24 +54,24 @@ HINTS = {
     "micromobility": "hulajnoga elektryczna, rower miejski",
     "modern_clothing": "puchówka, sportowe buty, czapka z daszkiem, plecak",
     "screen_or_led": "ekran, wyświetlacz, neon LED",
-    "modern_signage_or_branding": "współczesne szyldy, logotypy, parasole reklamowe",
-    "other_contemporary_object": "inny jednoznacznie współczesny (opisz w uwagach)",
+    "modern_signage_or_branding": "współczesne szyldy, logotypy, piktogramy; parasole tylko z nadrukiem (logo, tekst, pseudotekst)",
+    "other_contemporary_object": "słuchawki, składany wózek współczesny, kubek na wynos, plastikowa butelka, współczesny statek; inne tylko z opisem",
     "period_clothing_all_figures": "wszystkie postacie w strojach z epoki",
     "period_motor_vehicle": "auto lub autobus sprzed ok. 1970",
     "aged_photographic_look": "medium photo_aged",
     "other_period_object": "inny jednoznacznie dawny, używany (opisz)",
     "contemporary": "krok 2: ≥2 typy współczesne, brak historycznych (poza postarzeniem)",
     "historical": "krok 3: brak współczesnych, ≥1 historyczny",
-    "staged_historical": "krok 1: ≥1 postać w kostiumie i ≥1 typ współczesny",
+    "staged_historical": "krok 1: ≥1 postać w kostiumie i ≥1 typ współczesny (pojedynczy element ludowy ani cylinder dorożkarza to nie kostium)",
     "everyday": "zwykłe czynności: dojazd, zakupy, praca, rozmowa",
-    "heritage": "tematem zabudowa, zabytek, pomnik; pusta ulica staromiejska",
+    "heritage": "tematem zabytek, pomnik; pusta ulica staromiejska. Ludzie na pierwszym planie ≥1/3 kadru → decyduje ich czynność",
     "spectacle": "występ, festiwal, taniec, kostium, inscenizacja",
     "consumption": "restauracje, ogródki, kawiarnie, sklepy, stragany",
     "everyday_activity": "zakupy, praca, obsługa, rozmowa, odpoczynek",
     "sightseeing": "aparat, mapa, przewodnik z grupą, oglądanie",
     "performer_or_costumed": "scena, instrument, taniec, kostium",
     "religious_practice": "modlitwa, obrzęd, procesja",
-    "building": "budynek sakralny rozpoznawalny jako taki",
+    "building": "z widocznym symbolem (krzyż, gwiazda, tablice) albo zabytek sakralny z listy (≥2 cechy); sama sylweta = none",
     "symbol_or_object": "gwiazda Dawida, menora, krzyż, kipa, tałes, habit…",
     "practice": "modlitwa, obrzęd, procesja, nabożeństwo",
     "jewish": "żydowska",
@@ -79,8 +79,8 @@ HINTS = {
     "christian_orthodox": "prawosławna",
     "muslim": "muzułmańska",
     "latin": "litery łacińskie, także pseudotekst",
-    "hebrew": "czytelne pismo hebrajskie",
-    "hebrew_like": "znaki podobne do hebrajskich, nieczytelne",
+    "hebrew": "hebrajski z ≥1 poprawnym słowem",
+    "hebrew_like": "znaki podobne do hebrajskich, bez czytelnego słowa",
     "cyrillic": "cyrylica",
     "landmark": "zabytek z listy, min. 2 zgodne cechy",
     "generic_historic_townscape": "zabudowa historyczna bez rozpoznawalnego obiektu",
