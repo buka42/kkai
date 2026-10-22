@@ -42,7 +42,9 @@ coder:
   schema: materials/coder_schema_v0.9.json
   user_message: Code this image according to the instruction.
   max_batch_mb: 180            # Batch API limit is 200 MB per input file
-  cost_per_image_usd: null     # fill in after the API test (tokens x price)
+  # Coder test 22.10 (10 images, sync): ~4.9k input + ~1.5k output tokens at $2/$10 per 1M = ~$0.024.
+  # Kept at the sync price, so the estimate is conservative; Batch is 50% cheaper.
+  cost_per_image_usd: 0.025
   poll_seconds: 60
 validation: {per_condition: 5, retest_n: 50, second_coder_n: 50, coder_id: PB, bootstrap: 1000}
 retries: {technical: 3, corrupt_file: 1, backoff_seconds: [5, 20, 60]}
