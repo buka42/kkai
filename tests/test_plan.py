@@ -6,7 +6,7 @@ from kkai.plan import build_plan, read_plan, write_plan
 from kkai.util import KkaiError
 
 
-@pytest.mark.parametrize("stage,total,conds,per", [("test", 16, 16, 1), ("pilot", 32, 16, 2), ("main", 640, 32, 20)])
+@pytest.mark.parametrize("stage,total,conds,per", [("test", 16, 16, 1), ("pilot", 32, 32, 1), ("main", 640, 32, 20)])
 def test_counts(cfg, stage, total, conds, per):
     rows = build_plan(cfg, stage)
     c = Counter(r["condition_code"] for r in rows)
@@ -15,8 +15,8 @@ def test_counts(cfg, stage, total, conds, per):
     assert set(c.values()) == {per}
 
 
-def test_pilot_is_english_only(cfg):
-    assert {r["language"] for r in build_plan(cfg, "pilot")} == {"EN"}
+def test_pilot_covers_both_languages(cfg):
+    assert {r["language"] for r in build_plan(cfg, "pilot")} == {"EN", "PL"}
 
 
 def test_same_seed_same_plan_other_seed_other_plan(cfg):
