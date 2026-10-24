@@ -68,7 +68,7 @@ Uzasadnienia, które trzeba powtórzyć w metodzie:
 
 Plan B dla drugiego generatora: FLUX.2 [dev] przez hostowany endpoint z parametrem seed.
 
-Test API wykonany 22.10.2026 (16 obrazów, 10 zakodowanych modelem); pilotaże 1 i 2 też 22.10. Program zapisuje zwracaną nazwę modelu przy każdym żądaniu. Lista kontrolna testu (zachowana dla przejrzystości):
+Test API wykonany 22.10.2026 (16 obrazów, 10 zakodowanych modelem); pilotaże 1 i 2 też 22.10. Program zapisuje zwracaną nazwę modelu przy każdym żądaniu, jeśli API ją podaje (OpenAI Images API jej nie zwraca; wtedy zapisem jest żądana wersja z datą). Lista kontrolna testu (zachowana dla przejrzystości):
 1. Dostęp do GPT Image w koncie OpenAI (weryfikacja organizacji). Zgłoś ją od razu, bo może potrwać 1–3 dni.
 2. Gemini API: dostęp z Polski, włączone rozliczenia, generowanie scen z ludźmi.
 3. Dokładne nazwy parametrów rozmiaru, jakości i proporcji w obu API.
