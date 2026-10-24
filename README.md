@@ -74,6 +74,22 @@ kkai figure --dry-run
 kkai export --dry-run
 ```
 
+## Frozen materials (v1.0, 24.10.2026)
+
+Tag `v1.0-freeze` marks the state deposited before generating the main sample (640 images). In `materials/`:
+
+| File | Content |
+|---|---|
+| `protocol_v1.0.md` | Study protocol |
+| `codebook_v1.0.md` | Codebook |
+| `coder_instruction_v1.0.md` | Coder instruction (document) |
+| `coder_instruction_v1.0.txt` | The text sent to the AI coder (between BEGIN and END INSTRUCTION) |
+| `coder_schema_v1.0.json` | Output schema (strict) |
+| `second_coder_instruction_v1.0.md` | Instruction for the second human coder |
+| `analysis_plan_v1.0.md` | Analysis plan |
+
+Check them with `sha256sum -c SHA256SUMS_v1.0.txt` in `materials/`. `.gitattributes` keeps these files byte-identical on every checkout, so the instruction hash logged with each coding call matches the list.
+
 ## Data layout
 
 ```
