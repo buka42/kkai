@@ -80,6 +80,9 @@ def cmd_review(args) -> None:
     cfg = load_config(args.config, dry_run=args.dry_run)
     if args.ingest:
         run_ingest_review(cfg, args.ingest)
+    elif args.annotate:
+        from .review_annotate import run_review_annotate
+        run_review_annotate(cfg, args.coder_id, port=args.port)
     else:
         run_review(cfg)
 
@@ -174,6 +177,9 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("review", help="arkusz przeglądu po bramce 3; z --ingest wczytuje poprawki i tworzy kody końcowe")
     _common(p)
     p.add_argument("--ingest", default=None, help="ścieżka do wypełnionego review_sheet.xlsx")
+    p.add_argument("--annotate", action="store_true", help="przegląd w przeglądarce: kody modelu zaznaczone, poprawki kliknięciem")
+    p.add_argument("--coder-id", default="PB", help="identyfikator kodera przy --annotate (domyślnie PB)")
+    p.add_argument("--port", type=int, default=8765)
     p.set_defaults(func=cmd_review)
 
     for name, func, text in [("analyze", cmd_analyze, "testy H1–H4, odsetki z przedziałami, odporność"),

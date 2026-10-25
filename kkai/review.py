@@ -89,13 +89,14 @@ def _reasons(m: dict) -> str:
     return ";".join(sorted(rs))
 
 
-def run_review(cfg: Config) -> tuple[Path, Path]:
-    human = cfg.dir("human")
-    xlsx, page = human / "review_sheet.xlsx", human / "review.html"
-    if xlsx.exists() or page.exists():
-        raise KkaiError(f"{xlsx.name} albo {page.name} już istnieje. Nie nadpisuję.")
-    plan = review_plan(cfg)
-    variables = [v for v in SHEET_COLUMNS if any(v in p["review"] or v in p["manual"] for p in plan)]
+def plan_variables(plan: list[dict]) -> list[str]:
+    """Sheet variables that at least one image reviews or codes by hand, in sheet order."""
+    return [v for v in SHEET_COLUMNS if any(v in p["review"] or v in p["manual"] for p in plan)]
+
+
+def write_review_sheet(path: Path, plan: list[dict], variables: list[str],
+                       answers: dict[str, dict] | None = None) -> None:
+    """Review sheet for `kkai review --ingest`; `answers` (from the browser review) fills the corr: columns."""
     wb = Workbook()
     ws = wb.active
     ws.title = "review"
@@ -109,15 +110,16 @@ def run_review(cfg: Config) -> tuple[Path, Path]:
         c.font = Font(bold=True)
     for p in plan:
         m = p["model"]
+        a = (answers or {}).get(p["image_id"])
         row = [p["image_id"], p["flagged"], _reasons(m)]
         for v in variables:
             if v in p["review"]:
-                row += [m.get(v, ""), None]
+                row += [m.get(v, ""), _corr(a, v, m.get(v, ""))]
             elif v in p["manual"]:
-                row += ["(code by hand)", None]
+                row += ["(code by hand)", _corr(a, v, None)]
             else:
                 row += ["(no review)", "-"]
-        row += [m.get(a, "") if p["flagged"] else "" for a in AUX] + [None]
+        row += [m.get(a_, "") if p["flagged"] else "" for a_ in AUX] + [(a or {}).get("comment") or None]
         ws.append(row)
     for col in ws.iter_cols(min_row=1, max_row=ws.max_row):
         if str(col[0].value).startswith("model:"):
@@ -129,8 +131,30 @@ def run_review(cfg: Config) -> tuple[Path, Path]:
                  "Multi-select columns: codes separated by ';'. Type '-' for none.",
                  "'(no review)' / '-': nothing to do for this variable in this image."]:
         help_ws.append([line])
-    with open(xlsx, "xb") as f:
+    with open(path, "xb") as f:
         wb.save(f)
+
+
+def _corr(answer: dict | None, v: str, model_value: str | None):
+    """corr: cell from a browser answer: empty accepts the model code, '-' means none in a multi-select."""
+    if answer is None or v not in answer:
+        return None
+    val = answer[v]
+    if model_value is not None and val == model_value:
+        return None
+    if not val:
+        return "-" if SHEET_COLUMNS[v][1] else None
+    return val
+
+
+def run_review(cfg: Config) -> tuple[Path, Path]:
+    human = cfg.dir("human")
+    xlsx, page = human / "review_sheet.xlsx", human / "review.html"
+    if xlsx.exists() or page.exists():
+        raise KkaiError(f"{xlsx.name} albo {page.name} już istnieje. Nie nadpisuję.")
+    plan = review_plan(cfg)
+    variables = plan_variables(plan)
+    write_review_sheet(xlsx, plan, variables)
     _review_html(cfg, page, plan, variables)
     n_manual = sum(len(p["manual"]) for p in plan)
     print(f"Arkusz przeglądu: {xlsx} ({len(plan)} obrazów, {n_manual} pól do kodowania ręcznego)\nStrona: {page}")
