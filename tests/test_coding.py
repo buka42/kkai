@@ -170,6 +170,88 @@ def test_batch_flow(cfg, schema):
     assert done["rows"] == len(read_key(cfg))
 
 
+class FlakyMultiBatchClient:
+    """Several batches; the upload with index fail_at raises a connection error once."""
+
+    def __init__(self, schema, fail_at):
+        import httpx
+        import openai
+        self.schema, self.inputs, self.batch_inputs, self.status = schema, {}, {}, "in_progress"
+        outer, self.uploads = self, 0
+
+        class Files:
+            def create(self, file, purpose):
+                outer.uploads += 1
+                if outer.uploads == fail_at:
+                    raise openai.APIConnectionError(request=httpx.Request("POST", "https://api.openai.com/v1/files"))
+                fid = f"file_{len(outer.inputs)}"
+                outer.inputs[fid] = file.read().decode()
+                return type("F", (), {"id": fid})
+
+            def content(self, fid):
+                return type("C", (), {"text": outer.outputs[fid]})
+
+        class Batches:
+            def create(self, input_file_id, endpoint, completion_window, metadata):
+                bid = f"batch_{len(outer.batch_inputs) + 1}"
+                outer.batch_inputs[bid] = input_file_id
+                return type("B", (), {"id": bid})
+
+            def retrieve(self, bid):
+                rng = random.Random(bid)
+                lines = []
+                for line in outer.inputs[outer.batch_inputs[bid]].splitlines():
+                    req = json.loads(line)
+                    body = {"status": "completed", "model": "gpt-test", "output": [{"type": "message", "content": [
+                        {"type": "output_text", "text": json.dumps(random_output(outer.schema, rng))}]}]}
+                    lines.append(json.dumps({"custom_id": req["custom_id"], "error": None,
+                                             "response": {"status_code": 200, "request_id": "r", "body": body}}))
+                outer.outputs = {f"out_{bid}": "\n".join(lines)}
+                done = outer.status == "completed"
+                return type("S", (), {"status": outer.status, "output_file_id": f"out_{bid}" if done else None,
+                                      "error_file_id": None, "request_counts": {}})
+
+        self.files, self.batches = Files(), Batches()
+
+
+def test_batch_submission_resumes_after_connection_error(cfg, schema, monkeypatch):
+    import kkai.code_ai as code_ai
+    _pilot(cfg)
+    cfg.raw["coder"]["mode"] = "batch"
+    cfg.raw["coder"]["max_batch_mb"] = 0.000001  # one image per part
+    cfg.raw["data_dir"] = str(cfg.data_dir)
+    cfg.dry_run = False
+    n = len(read_key(cfg))
+    client = FlakyMultiBatchClient(schema, fail_at=3)
+    # Every retry inside the run fails too: the run stops after 2 parts, like a dropped connection.
+    monkeypatch.setattr(code_ai, "_with_retry", lambda fn, sleep=None: fn())
+    with pytest.raises(Exception):
+        run_code(cfg, "pilot", assume_yes=True, client=client)
+    assert len(client.batch_inputs) == 2
+    monkeypatch.undo()
+    # Rerun: the missing images are submitted, nothing is sent twice, the leftover part file stays.
+    assert run_code(cfg, "pilot", assume_yes=True, client=client, sleep=lambda s: None)["status"] == "pending"
+    sent = [json.loads(l)["custom_id"] for f in client.inputs.values() for l in f.splitlines()]
+    assert len(sent) == n == len(set(sent))
+    client.status = "completed"
+    done = run_code(cfg, "pilot", assume_yes=True, client=client)
+    assert done["status"] == "done" and done["rows"] == n and done["invalid"] == 0
+
+
+def test_with_retry_recovers_from_one_dropped_connection():
+    import httpx
+    import openai
+    from kkai.code_ai import _with_retry
+    calls = []
+
+    def fn():
+        calls.append(1)
+        if len(calls) == 1:
+            raise openai.APIConnectionError(request=httpx.Request("POST", "https://api.openai.com/v1/files"))
+        return "ok"
+    assert _with_retry(fn, sleep=lambda s: None) == "ok" and len(calls) == 2
+
+
 def test_sheet_and_ingest(cfg):
     _pilot(cfg)
     xlsx, page = run_sheet(cfg, "pilot")
