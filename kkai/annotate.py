@@ -196,6 +196,9 @@ class Session:
         _write_xlsx(path, self.ids, self.fields, self.allowed, values=answers)
         return path
 
+    def ingest_command(self, path: Path) -> str:
+        return f'kkai ingest --sheet "{path}" --set {self.set_name} --coder-id {self.coder_id}'
+
     def temporal_hint(self, rec: dict) -> str | None:
         """Frame by steps 2–4 of the codebook rule (step 1 needs costume, not a cue type)."""
         out = {"temporal_frame": {"value": "", "contemporary_cue_types": [c for c in rec.get("contemporary_cue_types", []) if c],
@@ -221,7 +224,7 @@ def _handler(session: Session):
 
         def do_GET(self):
             if self.path in ("/", "/index.html"):
-                self._send(200, PAGE.encode("utf-8"), "text/html; charset=utf-8")
+                self._send(200, session.page.encode("utf-8"), "text/html; charset=utf-8")
             elif self.path == "/api/state":
                 self._json(session.state())
             elif m := re.fullmatch(r"/img/(img_[0-9a-f]+)\.png", self.path):
@@ -242,8 +245,7 @@ def _handler(session: Session):
                     self._json({"frame": session.temporal_hint(payload)})
                 elif self.path == "/api/export":
                     path = session.export()
-                    self._json({"ok": True, "path": str(path), "command":
-                                f'kkai ingest --sheet "{path}" --set {session.set_name} --coder-id {session.coder_id}'})
+                    self._json({"ok": True, "path": str(path), "command": session.ingest_command(path)})
                 else:
                     self._send(404, b"not found", "text/plain")
             except KkaiError as e:
@@ -415,3 +417,4 @@ window.onbeforeunload = e => { if (dirty) { e.preventDefault(); return ""; } };
 api("/api/state").then(s => { S = s; const f = S.ids.findIndex(i => !S.answers[i]); idx = f < 0 ? 0 : f; render(); });
 </script></body></html>
 """
+Session.page = PAGE  # the HTML template is defined after the class

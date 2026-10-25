@@ -40,6 +40,7 @@ cp .env.example .env             # then put your API keys in .env
 | `kkai code --set test\|pilot\|main\|validation-repeat` | Codes blinded images with the AI model (Batch API or one call per image); run it again to collect batch results; `--mode sync` overrides config for a quick test |
 | `kkai validate` | Model–human alpha per variable (bootstrap CI), percent agreement and Gwet’s AC1 (decide when one category covers >90%; hebrew + hebrew_like combined), model stability, confusion matrices, differential error (W/WT vs B/T, OA vs GG), test–retest, second coder; proposed gate-3 decisions |
 | `kkai review` | After gate 3 (`data/human/decisions.csv`): review sheet for the remaining images, model codes in separate columns |
+| `kkai review --annotate [--coder-id PB]` | Browser review on 127.0.0.1: per image only the variables to review (model code pre-selected) and those coded by hand; answers appended to `data/human/review_annotate_<coder>.jsonl`, "Zapisz arkusz" writes a filled review sheet for `kkai review --ingest` |
 | `kkai review --ingest FILE` | Reads the filled review sheet; writes `review_corrections.csv` and `final_codes.csv` (code and source per variable) |
 | `kkai analyze` | Proportions with Wilson CIs in 32 conditions, H1–H4 (one-sided Fisher, Holm over 8 tests), sensitivity without `indeterminate`, robustness by language and scale, refusal rates, religion and scripts |
 | `kkai walls` | Image walls: 8 conditions × 2 generators, first 8 images by random id |
