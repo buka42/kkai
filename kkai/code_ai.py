@@ -196,7 +196,7 @@ def run_code(cfg: Config, set_name: str, assume_yes: bool = False, limit: int | 
                                         "schema_sha256": mats["schema_sha256"], "ts": utc_now(),
                                         "script_version": script_version(), "dry_run": cfg.dry_run})
     if mode == "batch":
-        _submit_batches(cfg, mats, run, client or _client(cfg))
+        _submit_batches(cfg, mats, run, client or _client(cfg), sleep)
         print("Zadania wysłane. Uruchom to samo polecenie później, aby sprawdzić stan i pobrać wyniki.")
         return {"run_id": run_id, "status": "submitted"}
     return _continue_run(cfg, mats, run, client, sleep)
@@ -209,7 +209,12 @@ def _client(cfg: Config):
 
 def _continue_run(cfg, mats, run, client, sleep) -> dict:
     if run["mode"] == "batch":
-        return _poll_batches(cfg, mats, run, client or _client(cfg))
+        client = client or _client(cfg)
+        missing = [i for i in run["image_ids"] if i not in _submitted_ids(run)]
+        if missing:
+            print(f"Przejście {run['run_id']}: {len(missing)} obrazów nie zostało wysłanych (przerwane wysyłanie). Wysyłam je teraz.")
+            _submit_batches(cfg, mats, run, client, sleep)
+        return _poll_batches(cfg, mats, run, client)
     done = _coded(cfg, run["run_id"])
     todo = [i for i in run["image_ids"] if i not in done]
     rng = random.Random(f"{cfg.seed}:fake-coder:{run['run_id']}")
@@ -249,11 +254,36 @@ def _call_sync(client, body: dict) -> dict:
     return {"body": None, "error": {"message": str(last)}}
 
 
-def _submit_batches(cfg, mats, run, client) -> None:
+def _submitted_ids(run) -> set[str]:
+    return {i for info in run["batches"].values() for i in info["image_ids"]}
+
+
+def _with_retry(fn, sleep=time.sleep):
+    """Upload and batch creation survive a dropped connection (3 attempts)."""
+    import openai
+    for attempt in range(3):
+        try:
+            return fn()
+        except (openai.APITimeoutError, openai.APIConnectionError, openai.InternalServerError) as e:
+            if attempt == 2:
+                raise
+            print(f"  błąd połączenia ({e.__class__.__name__}), ponawiam za {[10, 30][attempt]} s")
+            sleep([10, 30][attempt])
+
+
+def _submit_batches(cfg, mats, run, client, sleep=time.sleep) -> None:
+    """Submit every image of the run that is not yet in a submitted batch.
+
+    Safe to call again after an interruption: images already in a logged batch are skipped
+    and new part files never overwrite earlier ones.
+    """
     max_bytes = int(float(cfg.raw["coder"].get("max_batch_mb", 180)) * 1024 * 1024)
     bdir = ai_dir(cfg) / "batches"
+    done = _submitted_ids(run)
     chunks, cur, cur_size = [], [], 0
     for image_id in run["image_ids"]:
+        if image_id in done:
+            continue
         line = json.dumps({"custom_id": f"{image_id}__{run['run_id']}", "method": "POST", "url": ENDPOINT,
                            "body": request_body(cfg, mats, blinded_file(cfg, image_id).read_bytes())},
                           ensure_ascii=False) + "\n"
@@ -265,17 +295,26 @@ def _submit_batches(cfg, mats, run, client) -> None:
         cur_size += size
     if cur:
         chunks.append(cur)
-    for k, chunk in enumerate(chunks, 1):
-        path = bdir / f"{run['run_id']}_part{k}.jsonl"
+    first = len(run["batches"]) + 1
+    for k, chunk in enumerate(chunks, first):
+        n = k
+        while (bdir / f"{run['run_id']}_part{n}.jsonl").exists():
+            n += 1  # a part file left by an interrupted submission stays as it was
+        path = bdir / f"{run['run_id']}_part{n}.jsonl"
         write_new_text(path, "".join(line for _, line in chunk))
-        with open(path, "rb") as f:
-            up = client.files.create(file=f, purpose="batch")
-        batch = client.batches.create(input_file_id=up.id, endpoint=ENDPOINT, completion_window="24h",
-                                      metadata={"run_id": run["run_id"], "part": str(k)})
+
+        def upload():
+            with open(path, "rb") as f:
+                return client.files.create(file=f, purpose="batch")
+        up = _with_retry(upload, sleep)
+        batch = _with_retry(lambda: client.batches.create(input_file_id=up.id, endpoint=ENDPOINT,
+                                                          completion_window="24h",
+                                                          metadata={"run_id": run["run_id"], "part": str(n)}), sleep)
         append_jsonl(coding_log_path(cfg), {"event": "batch_submitted", "run_id": run["run_id"], "batch_id": batch.id,
                                             "input_file_id": up.id, "input_file": path.name,
                                             "image_ids": [i for i, _ in chunk], "ts": utc_now()})
-        print(f"  część {k}/{len(chunks)}: batch {batch.id}, {len(chunk)} obrazów")
+        run["batches"][batch.id] = {"image_ids": [i for i, _ in chunk], "status": "submitted"}
+        print(f"  część {k}/{first + len(chunks) - 1}: batch {batch.id}, {len(chunk)} obrazów")
 
 
 def _poll_batches(cfg, mats, run, client) -> dict:
