@@ -50,8 +50,8 @@ coder:
   # Kept at the sync price, so the estimate is conservative; Batch is 50% cheaper.
   cost_per_image_usd: 0.025
   poll_seconds: 60
-# excluded_coders: codes kept in human_codes.csv but left out of all agreement (DK: entries marked as AI output, log 27.10.2026).
-validation: {per_condition: 5, retest_n: 50, second_coder_n: 50, coder_id: PB, bootstrap: 1000, excluded_coders: [DK]}
+# excluded_coders: codes kept in human_codes.csv but left out of all agreement (DK: entries marked as AI output; WD: identical to DK in 50/50 images; log 27.10.2026).
+validation: {per_condition: 5, retest_n: 50, second_coder_n: 50, coder_id: PB, bootstrap: 1000, excluded_coders: [DK, WD]}
 retries: {technical: 3, corrupt_file: 1, backoff_seconds: [5, 20, 60]}
 timeout_seconds: 180
 max_cost_usd: 30
