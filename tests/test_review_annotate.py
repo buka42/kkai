@@ -63,6 +63,8 @@ def test_review_annotate_round_trip(cfg, monkeypatch):
     assert s.save(_accept(s, second, temporal_frame=new_frame, notes="tło"))["ok"]
     path = s.export()
     assert main(["review", "--ingest", str(path), "--dry-run"]) == 0
+    # Ingesting the same sheet again (e.g. a later day) is a no-op, not an error.
+    assert main(["review", "--ingest", str(path), "--dry-run"]) == 0
     corr = read_csv(cfg.dir("human") / "review_corrections.csv")
     assert {(c["image_id"], c["variable"]) for c in corr if c["variable"] not in ("mode_dominant", "roles", "landmarks")} == \
         {(second, "temporal_frame")}
