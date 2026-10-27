@@ -148,6 +148,11 @@ def load_inputs(cfg: Config) -> dict:
     human = read_csv(hum_path)
     vcfg = cfg.raw.get("validation", {})
     primary = vcfg.get("coder_id") or (human[0]["coder_id"] if human else None)
+    # Codes kept in human_codes.csv (append only) but left out of every agreement (decision in the log).
+    excluded = set(vcfg.get("excluded_coders") or [])
+    if primary in excluded:
+        raise KkaiError(f"validation.excluded_coders zawiera głównego kodera {primary}")
+    human = [r for r in human if r["coder_id"] not in excluded]
 
     def first_run(set_name):
         runs = sorted({r["run_id"] for r in ai if r["set"] == set_name})
@@ -161,6 +166,7 @@ def load_inputs(cfg: Config) -> dict:
         "second": [r for r in human if r["set"] == "second" and r["coder_id"] != primary],
         "key": {r["image_id"]: r for r in read_key(cfg)},
         "primary": primary,
+        "excluded": sorted(excluded),
     }
 
 
@@ -334,7 +340,7 @@ def _report(rows, confusions, inp, n_boot, flags=()) -> str:
 td,th{{border:1px solid #ccc;padding:3px 6px;font-size:13px}}</style></head><body>
 <h1>Walidacja kodowania</h1>
 <p>Koder: {html.escape(str(inp['primary']))}. Obrazów z kodami modelu: {len(inp['model'])}; z Twoimi kodami: {len(inp['human'])};
-powtórne kodowanie modelu: {len(inp['model_repeat'])}; test–retest: {len(inp['retest'])}; drugi koder: {len(inp['second'])}.
+powtórne kodowanie modelu: {len(inp['model_repeat'])}; test–retest: {len(inp['retest'])}; drugi koder: {len(inp['second'])}{' (wykluczeni koderzy: ' + ', '.join(inp['excluded']) + ')' if inp['excluded'] else ''}.
 Przedziały: bootstrap po obrazach, {n_boot} powtórzeń.</p>
 <p>Reguła (protokół, sekcja 6): α ≥ .80, stabilność ≥ .90 i brak błędu różnicowego → <b>review_flagged</b>;
 α .67–.80 → <b>review_all</b>; α &lt; .67 albo błąd różnicowy → <b>manual_all</b>.

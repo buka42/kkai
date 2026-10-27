@@ -5,6 +5,7 @@ import random
 import pytest
 
 from kkai.prepare import KEY_FIELDS
+from kkai.util import KkaiError
 from kkai.validate import alpha_nominal, decide, gwet_ac1, percent_agreement, reliability_level, run_validate, value, variables
 
 
@@ -130,3 +131,25 @@ def test_flag_rates_per_condition_and_frame():
     w = rows[("condition", "W-K-EN-OA")]
     assert w["n"] == 2 and w["any_flag"] == 1.0 and w["religion_present"] == 0.5 and w["identity_terms"] == 0.5
     assert rows[("frame", "B")]["any_flag"] == 0.0
+
+
+def test_excluded_second_coder_is_ignored(cfg):
+    """Codes of an excluded coder stay in human_codes.csv but count in no agreement."""
+    cfg.raw["validation"]["bootstrap"] = 50
+    _setup(cfg, lambda t, f, rng: dict(t))
+    path = cfg.data_dir / "human" / "human_codes.csv"
+    rows = list(csv.DictReader(open(path, encoding="utf-8")))
+    first50 = [r for r in rows if r["set"] == "validation"][:50]
+    flipped = {"contemporary": "historical", "historical": "contemporary",
+               "staged_historical": "indeterminate", "indeterminate": "staged_historical"}
+    bad = [{**r, "coder_id": "DK", "set": "second", "temporal_frame": flipped[r["temporal_frame"]]} for r in first50]
+    good = [{**r, "coder_id": "KR", "set": "second"} for r in first50]
+    _write(path, rows + bad + good, list(rows[0]))
+    cfg.raw["validation"]["excluded_coders"] = ["DK"]
+    out = run_validate(cfg)
+    assert float(_table(out)["temporal_frame"]["second_coder_alpha"]) == pytest.approx(1.0)
+    assert "wykluczeni koderzy: DK" in (out / "validation_report.html").read_text(encoding="utf-8")
+    assert sum(1 for r in csv.DictReader(open(path, encoding="utf-8")) if r["coder_id"] == "DK") == 50
+    cfg.raw["validation"]["excluded_coders"] = ["PB"]
+    with pytest.raises(KkaiError):
+        run_validate(cfg)
