@@ -29,7 +29,11 @@ HYPOTHESES = [
     ("H4", "not_contemporary", lambda k: k["frame"] == "T" and k["scale"] == "Z",
      lambda k: k["frame"] == "T" and k["scale"] == "K"),
 ]
-SENSITIVITY = {"H1", "H2", "H4"}
+# Plan v1.0 sec. 8: (analysis name, hypotheses, images kept).
+SENSITIVITY = [
+    ("sensitivity_no_indeterminate", {"H1", "H2", "H4"}, lambda r: r.get("temporal_frame") != "indeterminate"),
+    ("sensitivity_no_illustration", {"H1", "H2", "H3", "H4"}, lambda r: r.get("medium") != "illustration"),
+]
 
 
 def wilson(k: int, n: int) -> tuple[float, float]:
@@ -107,16 +111,16 @@ def run_analyze(cfg: Config) -> Path:
     tests = []
     for code, ind, ga, gb in HYPOTHESES:
         for g in gens:
-            for sensitivity in ([False, True] if code in SENSITIVITY else [False]):
-                sub = [r for r in data if r["generator"] == g]
-                if sensitivity:
-                    sub = [r for r in sub if r.get("temporal_frame") != "indeterminate"]
+            variants = [("confirmatory", lambda r: True)] + [(name, keep) for name, hyps, keep in SENSITIVITY
+                                                             if code in hyps]
+            for analysis, keep in variants:
+                sub = [r for r in data if r["generator"] == g and keep(r)]
                 a = [has(r, ind) for r in sub if ga(r) and has(r, ind) is not None]
                 b = [has(r, ind) for r in sub if gb(r) and has(r, ind) is not None]
                 ak, an, bk, bn = sum(a), len(a), sum(b), len(b)
                 p = fisher_greater(ak, an, bk, bn) if an and bn else float("nan")
                 tests.append({"hypothesis": code, "generator": g, "indicator": ind,
-                              "analysis": "sensitivity_no_indeterminate" if sensitivity else "confirmatory",
+                              "analysis": analysis,
                               "group_a_k": ak, "group_a_n": an, "group_a_p": ak / an if an else float("nan"),
                               "group_b_k": bk, "group_b_n": bn, "group_b_p": bk / bn if bn else float("nan"),
                               "difference_pp": 100 * (ak / an - bk / bn) if an and bn else float("nan"),
@@ -169,7 +173,31 @@ def run_analyze(cfg: Config) -> Path:
         p5.append(row)
     _write(tdir / "religion_scripts.csv", p5)
 
-    write_new_text(out_dir / "analysis_report.html", _report(cond_rows, tests, robust, len(data)))
+    # 5. Exploratory: temporal frame by dominant mode (H1 and H3 are not independent) and P6 medium.
+    cross = []
+    for f in FRAMES:
+        for s in SCALES:
+            for g in gens:
+                sub = [r for r in data if r["frame"] == f and r["scale"] == s and r["generator"] == g]
+                counts = defaultdict(int)
+                for r in sub:
+                    counts[(r.get("temporal_frame", ""), r.get("mode_dominant", ""))] += 1
+                for (tf, mode), k in sorted(counts.items()):
+                    cross.append({"frame": f, "scale": s, "generator": g, "temporal_frame": tf,
+                                  "mode_dominant": mode, "n": k, "share": k / len(sub)})
+    _write(tdir / "frame_by_mode.csv", cross)
+    medium = []
+    for f in FRAMES:
+        for lang in LANGUAGES:
+            for g in gens:
+                sub = [r for r in data if r["frame"] == f and r["language"] == lang and r["generator"] == g]
+                row = {"frame": f, "language": lang, "generator": g, "n": len(sub)}
+                for m in ("photo_colour", "photo_aged", "illustration", "indeterminate"):
+                    row[m] = sum(r.get("medium") == m for r in sub)
+                medium.append(row)
+    _write(tdir / "medium.csv", medium)
+
+    write_new_text(out_dir / "analysis_report.html", _report(cond_rows, tests, robust, len(data), cross, medium))
     print(f"Raport analizy: {out_dir / 'analysis_report.html'}")
     for t in conf:
         print(f"  {t['hypothesis']} {t['generator']}: {t['group_a_p']:.2f} vs {t['group_b_p']:.2f}, "
@@ -200,7 +228,7 @@ def _table(rows: list[dict], cols: list[str]) -> str:
     return f"<table><tr>{head}</tr>{body}</table>"
 
 
-def _report(cond_rows, tests, robust, n) -> str:
+def _report(cond_rows, tests, robust, n, cross, medium) -> str:
     cond_cols = ["condition_code", "requests", "refused", "coded", "hist_or_staged_p", "hist_or_staged_lo",
                  "hist_or_staged_hi", "heritage_or_spectacle_p", "not_contemporary_p", "religion_present_p"]
     test_cols = ["hypothesis", "generator", "analysis", "group_a_k", "group_a_n", "group_a_p", "group_b_k",
@@ -213,4 +241,6 @@ Testy: dokładny test Fishera, jednostronny; korekta Holma dla testów konfirmac
 <h2>Hipotezy</h2>{_table(tests, test_cols)}
 <h2>Warunki (przedziały Wilsona 95%)</h2>{_table(cond_rows, cond_cols)}
 <h2>Odporność (opisowo)</h2>{_table(robust, ["hypothesis", "generator", "language", "scale", "group_a_p", "group_a_n", "group_b_p", "group_b_n", "difference_pp"])}
+<h2>Eksploracyjnie: rama czasowa × tryb dominujący</h2>{_table(cross, ["frame", "scale", "generator", "temporal_frame", "mode_dominant", "n", "share"])}
+<h2>Eksploracyjnie (P6): medium</h2>{_table(medium, ["frame", "language", "generator", "n", "photo_colour", "photo_aged", "illustration", "indeterminate"])}
 </body></html>"""

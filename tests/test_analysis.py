@@ -37,10 +37,12 @@ def test_synthetic_effect_detected(cfg):
                         hist = rep < share * 20
                         key.append({"image_id": iid, "stage": "main", "condition_code": f"{f}-{s}-{lang}-{g}",
                                     "frame": f, "scale": s, "language": lang, "generator": g})
+                        # Two W-K-PL-OA images are illustrations, both historical.
+                        medium = "illustration" if (f, s, lang, g) == ("W", "K", "PL", "OA") and rep < 2 else "photo_colour"
                         final.append({"image_id": iid, "temporal_frame": "historical" if hist else "contemporary",
-                                      "mode_dominant": "everyday", "religion_form": "none"})
+                                      "mode_dominant": "everyday", "religion_form": "none", "medium": medium})
     _write(cfg.data_dir / "key" / "key.csv", key, KEY_FIELDS)
-    _write(cfg.data_dir / "human" / "final_codes.csv", final, ["image_id", "temporal_frame", "mode_dominant", "religion_form"])
+    _write(cfg.data_dir / "human" / "final_codes.csv", final, ["image_id", "temporal_frame", "mode_dominant", "religion_form", "medium"])
     out = run_analyze(cfg)
     with open(out / "tables" / "hypotheses.csv", encoding="utf-8") as fh:
         rows = {(r["hypothesis"], r["generator"], r["analysis"]): r for r in csv.DictReader(fh)}
@@ -49,9 +51,18 @@ def test_synthetic_effect_detected(cfg):
     assert float(h1["group_a_p"]) == pytest.approx(0.8) and float(h1["group_b_p"]) == pytest.approx(0.2)
     assert h1["supported"] == "True"
     assert rows[("H1", "GG", "confirmatory")]["supported"] == "False"
+    no_ill = rows[("H1", "OA", "sensitivity_no_illustration")]
+    assert (no_ill["group_a_n"], no_ill["group_a_k"]) == ("78", "62") and no_ill["p_holm"] == ""
+    assert ("H3", "OA", "sensitivity_no_illustration") in rows and ("H3", "OA", "sensitivity_no_indeterminate") not in rows
     h4 = rows[("H4", "OA", "confirmatory")]
     assert (h4["group_a_n"], h4["group_b_n"]) == ("40", "40")
     with open(out / "tables" / "conditions.csv", encoding="utf-8") as fh:
         cond = {r["condition_code"]: r for r in csv.DictReader(fh)}
     assert len(cond) == 32
     assert float(cond["W-K-EN-OA"]["hist_or_staged_p"]) == pytest.approx(0.8)
+    with open(out / "tables" / "frame_by_mode.csv", encoding="utf-8") as fh:
+        cross = [r for r in csv.DictReader(fh) if (r["frame"], r["scale"], r["generator"]) == ("W", "K", "OA")]
+    assert sum(int(r["n"]) for r in cross) == 40
+    with open(out / "tables" / "medium.csv", encoding="utf-8") as fh:
+        med = {(r["frame"], r["language"], r["generator"]): r for r in csv.DictReader(fh)}
+    assert med[("W", "PL", "OA")]["illustration"] == "2"

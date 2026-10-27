@@ -42,7 +42,7 @@ cp .env.example .env             # then put your API keys in .env
 | `kkai review` | After gate 3 (`data/human/decisions.csv`): review sheet for the remaining images, model codes in separate columns |
 | `kkai review --annotate [--coder-id PB]` | Browser review on 127.0.0.1: per image only the variables to review (model code pre-selected) and those coded by hand; answers appended to `data/human/review_annotate_<coder>.jsonl`, "Zapisz arkusz" writes a filled review sheet for `kkai review --ingest` |
 | `kkai review --ingest FILE` | Reads the filled review sheet; writes `review_corrections.csv` and `final_codes.csv` (code and source per variable) |
-| `kkai analyze` | Proportions with Wilson CIs in 32 conditions, H1–H4 (one-sided Fisher, Holm over 8 tests), sensitivity without `indeterminate`, robustness by language and scale, refusal rates, religion and scripts |
+| `kkai analyze` | Proportions with Wilson CIs in 32 conditions, H1–H4 (one-sided Fisher, Holm over 8 tests), sensitivity without `indeterminate` and without `illustration`, robustness by language and scale, refusal rates, religion and scripts; exploratory frame × dominant mode and medium (P6) tables |
 | `kkai walls` | Image walls: 8 conditions × 2 generators, first 8 images by random id |
 | `kkai figure` | Share of historical or staged frame in 8 conditions with CIs (PNG, SVG; readable in black and white) |
 | `kkai export [--with-images]` | Replication package with materials, plans, logs, codes, reports and a SHA-256 manifest |
