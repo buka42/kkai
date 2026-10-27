@@ -220,10 +220,22 @@ def run_ingest_review(cfg: Config, sheet: str | Path) -> Path:
             print("  " + e)
         raise KkaiError(f"{len(errors)} problemów w arkuszu przeglądu. Nic nie zapisano.")
     human = cfg.dir("human")
-    write_csv_once(human / "review_corrections.csv", corrections, CORR_FIELDS)
+    corr_path = human / "review_corrections.csv"
+    if corr_path.exists() and _same_corrections(read_csv(corr_path), corrections):
+        # The same sheet again: keep the first ingest (its ingested_at) and only check the final codes.
+        corrections = read_csv(corr_path)
+        print(f"Ten arkusz jest już wczytany ({corr_path.name}). Nic nie zmieniam.")
+    else:
+        write_csv_once(corr_path, corrections, CORR_FIELDS)
     path = build_final_codes(cfg, corrections)
     print(f"Poprawek: {len(corrections)}. Kody końcowe: {path}")
     return path
+
+
+def _same_corrections(old: list[dict], new: list[dict]) -> bool:
+    """Same corrections from the same sheet, ignoring when they were ingested."""
+    key = lambda rows: [{k: r.get(k, "") for k in CORR_FIELDS if k != "ingested_at"} for r in rows]
+    return key(old) == key(new)
 
 
 def build_final_codes(cfg: Config, corrections: list[dict]) -> Path:
