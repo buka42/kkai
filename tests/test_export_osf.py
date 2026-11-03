@@ -36,3 +36,13 @@ def test_export_osf_dry_run(cfg, monkeypatch, tmp_path):
     for f in ("README.md", "DATA_DICTIONARY.md", "LICENSE-DATA.txt", "MANIFEST.csv"):
         assert (out / f).exists(), f
     assert "images_blinded.zip" in (out / "MANIFEST.csv").read_text(encoding="utf-8")
+
+
+def test_anonymise_tree_keeps_raw_logs(tmp_path):
+    from kkai.export import anonymise_tree
+    (tmp_path / "codes").mkdir()
+    (tmp_path / "codes" / "ai_raw.jsonl").write_text('{"text": "DW tram"}\n', encoding="utf-8")
+    (tmp_path / "codes" / "human_codes.csv").write_text("x,DW\n", encoding="utf-8")
+    counts = anonymise_tree(tmp_path, {"DW": "C1"})
+    assert (tmp_path / "codes" / "ai_raw.jsonl").read_text(encoding="utf-8") == '{"text": "DW tram"}\n'
+    assert counts == {"codes/human_codes.csv": 1}

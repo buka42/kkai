@@ -86,6 +86,9 @@ Code: the kkai repository (MIT licence). API keys are never stored in any file.
 
 
 TEXT_SUFFIXES = {".csv", ".json", ".jsonl", ".md", ".txt", ".yaml", ".yml", ".html", ".tsv"}
+# Verbatim machine records: never edited, so they still match the API responses and their hashes.
+# Coder ids do not occur in them; any two-letter match there is a coincidence.
+VERBATIM = {"codes/ai_raw.jsonl", "logs/generation_log.jsonl", "logs/coding_log.jsonl"}
 
 
 def _coder_aliases(cfg: Config) -> dict:
@@ -108,7 +111,7 @@ def anonymise_tree(root: Path, aliases: dict) -> dict:
     """Anonymise coder ids in text files and file names under root; returns replacements per file."""
     counts = {}
     for f in sorted(root.rglob("*")):
-        if f.is_file() and f.suffix.lower() in TEXT_SUFFIXES:
+        if f.is_file() and f.suffix.lower() in TEXT_SUFFIXES and f.relative_to(root).as_posix() not in VERBATIM:
             text = f.read_text(encoding="utf-8")
             new, n = anonymise_text(text, aliases)
             if n:
