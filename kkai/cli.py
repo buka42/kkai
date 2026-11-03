@@ -104,7 +104,8 @@ def cmd_figure(args) -> None:
 
 def cmd_export(args) -> None:
     from .export import run_export
-    run_export(load_config(args.config, dry_run=args.dry_run), with_images=args.with_images)
+    run_export(load_config(args.config, dry_run=args.dry_run), with_images=args.with_images, osf=args.osf,
+               add=args.add)
 
 
 def cmd_simulate_human(args) -> None:
@@ -192,6 +193,10 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("export", help="pakiet replikacyjny bez kluczy")
     _common(p)
     p.add_argument("--with-images", action="store_true", help="dołącz obrazy z blinded/")
+    p.add_argument("--osf", action="store_true",
+                   help="pakiet do OSF: zanonimizowani koderzy, obrazy w ZIP, README, słownik zmiennych, licencja")
+    p.add_argument("--add", action="append", default=[], metavar="PLIK",
+                   help="dodatkowy plik do docs/ (np. dziennik decyzji); można podać kilka razy")
     p.set_defaults(func=cmd_export)
 
     p = sub.add_parser("simulate-human", help="tylko --dry-run: wypełnia arkusz losowo, by przetestować dalsze kroki")
