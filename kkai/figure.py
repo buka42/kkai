@@ -18,6 +18,8 @@ def run_figure(cfg: Config) -> Path:
 
     data = load_dataset(cfg)
     gens = list(cfg.generators)
+    # Display names for the article; the internal codes stay in the data.
+    labels = (cfg.raw.get("figure") or {}).get("labels") or {}
     cells = [(s, f) for s in SCALES for f in FRAMES]
     fig, ax = plt.subplots(figsize=(7.5, 3.8))
     width = 0.8 / len(gens)
@@ -34,7 +36,7 @@ def run_figure(cfg: Config) -> Path:
             lo_err.append(p - lo)
             hi_err.append(hi - p)
         ax.errorbar(xs, ps, yerr=[lo_err, hi_err], fmt=MARKERS[gi % len(MARKERS)], color="black",
-                    mfc="white" if gi % 2 else "black", capsize=3, label=g, linestyle="none")
+                    mfc="white" if gi % 2 else "black", capsize=3, label=labels.get(g, g), linestyle="none")
     ax.set_xticks(range(len(cells)))
     ax.set_xticklabels([f"{f}-{s}" for s, f in cells])
     ax.axvline(len(FRAMES) - 0.5, color="grey", linewidth=0.8)
